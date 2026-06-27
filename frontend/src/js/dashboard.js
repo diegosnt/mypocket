@@ -40,17 +40,31 @@ export async function initDashboard(user) {
   setupOriginPanel();
   document.getElementById('btn-add-expense').addEventListener('click', openAddForm);
   document.getElementById('btn-cancel').addEventListener('click', closeForm);
-  document.getElementById('btn-categories').addEventListener('click', toggleCategoryPanel);
-  document.getElementById('btn-close-categories').addEventListener('click', toggleCategoryPanel);
-  document.getElementById('btn-origins').addEventListener('click', toggleOriginsPanel);
-  document.getElementById('btn-close-origins').addEventListener('click', toggleOriginsPanel);
+  document.getElementById('btn-categories').addEventListener('click', openCategoriesModal);
+  document.getElementById('btn-close-categories').addEventListener('click', closeCategoriesModal);
+  document.getElementById('btn-origins').addEventListener('click', openOriginsModal);
+  document.getElementById('btn-close-origins').addEventListener('click', closeOriginsModal);
   document.getElementById('btn-chart').addEventListener('click', openChartModal);
   document.getElementById('btn-close-chart').addEventListener('click', closeChartModal);
   document.getElementById('chart-modal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeChartModal();
   });
+  document.getElementById('expense-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeForm();
+  });
+  document.getElementById('categories-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeCategoriesModal();
+  });
+  document.getElementById('origins-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeOriginsModal();
+  });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeChartModal();
+    if (e.key === 'Escape') {
+      closeChartModal();
+      closeForm();
+      closeCategoriesModal();
+      closeOriginsModal();
+    }
   });
 
   document.getElementById('filter-category').addEventListener('change', (e) => {
@@ -607,7 +621,7 @@ function openAddForm() {
   if (debito) form.origin.value = debito.name;
   document.getElementById('form-title').textContent = 'Nuevo movimiento';
   document.getElementById('error-expense').hidden = true;
-  document.getElementById('expense-form-panel').hidden = false;
+  document.getElementById('expense-modal').hidden = false;
   form.description.focus();
 }
 
@@ -624,7 +638,7 @@ function openEditForm(id) {
   form.date.value = tx.date;
   document.getElementById('form-title').textContent = 'Editar movimiento';
   document.getElementById('error-expense').hidden = true;
-  document.getElementById('expense-form-panel').hidden = false;
+  document.getElementById('expense-modal').hidden = false;
   form.description.focus();
 }
 
@@ -636,7 +650,7 @@ function setFormType(type) {
 }
 
 function closeForm() {
-  document.getElementById('expense-form-panel').hidden = true;
+  document.getElementById('expense-modal').hidden = true;
   editingId = null;
 }
 
@@ -654,10 +668,19 @@ async function deleteTransaction(id) {
 
 // ─── Category panel ───────────────────────────────
 
-function toggleCategoryPanel() {
-  const panel = document.getElementById('categories-panel');
-  panel.hidden = !panel.hidden;
-  if (!panel.hidden) renderCategoryList();
+function openCategoriesModal() {
+  document.getElementById('categories-modal').hidden = false;
+  renderCategoryList();
+}
+
+function closeCategoriesModal() {
+  document.getElementById('categories-modal').hidden = true;
+  editingCategoryId = null;
+  const form = document.getElementById('form-category');
+  form.reset();
+  form.catcolor.value = '#6366f1';
+  form.querySelector('button[type="submit"]').textContent = 'Agregar';
+  document.getElementById('error-category').hidden = true;
 }
 
 function renderCategoryList() {
@@ -759,10 +782,18 @@ async function deleteCategory(id) {
 
 // ─── Origins panel ────────────────────────────────
 
-function toggleOriginsPanel() {
-  const panel = document.getElementById('origins-panel');
-  panel.hidden = !panel.hidden;
-  if (!panel.hidden) renderOriginList();
+function openOriginsModal() {
+  document.getElementById('origins-modal').hidden = false;
+  renderOriginList();
+}
+
+function closeOriginsModal() {
+  document.getElementById('origins-modal').hidden = true;
+  editingOriginId = null;
+  const form = document.getElementById('form-origin');
+  form.reset();
+  form.querySelector('button[type="submit"]').textContent = 'Agregar';
+  document.getElementById('error-origin').hidden = true;
 }
 
 function renderOriginList() {

@@ -137,93 +137,6 @@
         </button>
       </div>
 
-      <!-- Panel de categorías -->
-      <div id="categories-panel" class="form-panel" hidden>
-        <h3>Categorías</h3>
-        <p id="error-category" class="alert-error" hidden></p>
-        <div id="categories-list" style="margin-bottom:1.25rem;"></div>
-        <form id="form-category" novalidate>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="cat-name">Nombre</label>
-              <input id="cat-name" name="catname" type="text" placeholder="Ej: Mascotas" required />
-            </div>
-            <div class="form-group">
-              <label for="cat-color">Color</label>
-              <input id="cat-color" name="catcolor" type="color" value="#6366f1" />
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" id="btn-close-categories" class="btn btn-secondary">Cerrar</button>
-            <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Agregar</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Panel de orígenes -->
-      <div id="origins-panel" class="form-panel" hidden>
-        <h3>Orígenes de pago</h3>
-        <p id="error-origin" class="alert-error" hidden></p>
-        <div id="origins-list" style="margin-bottom:1.25rem;"></div>
-        <form id="form-origin" novalidate>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="orig-name">Nombre</label>
-              <input id="orig-name" name="origname" type="text" placeholder="Ej: Billetera Virtual" required />
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" id="btn-close-origins" class="btn btn-secondary">Cerrar</button>
-            <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Agregar</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Panel de carga / edición -->
-      <div id="expense-form-panel" class="form-panel" hidden>
-        <h3 id="form-title">Nuevo movimiento</h3>
-        <p id="error-expense" class="alert-error" hidden></p>
-        <form id="form-expense" novalidate>
-          <div class="type-toggle" role="group" aria-label="Tipo de movimiento">
-            <button type="button" class="type-btn active" data-type="expense">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Egreso
-            </button>
-            <button type="button" class="type-btn" data-type="income">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Ingreso
-            </button>
-          </div>
-          <input type="hidden" id="tx-type" name="type" value="expense" />
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="exp-description">Descripción</label>
-              <input id="exp-description" name="description" type="text" placeholder="Café, Alquiler…" required />
-            </div>
-            <div class="form-group">
-              <label for="exp-amount">Monto</label>
-              <input id="exp-amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required />
-            </div>
-            <div class="form-group">
-              <label for="exp-category">Categoría</label>
-              <select id="exp-category" name="category" class="category-select" required></select>
-            </div>
-            <div class="form-group">
-              <label for="exp-origin">Origen</label>
-              <select id="exp-origin" name="origin" class="origin-select" required></select>
-            </div>
-            <div class="form-group">
-              <label for="exp-date">Fecha</label>
-              <input id="exp-date" name="date" type="date" required />
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" id="btn-cancel" class="btn btn-secondary">Cancelar</button>
-            <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Guardar</button>
-          </div>
-        </form>
-      </div>
-
       <!-- Lista de movimientos -->
       <div class="expenses-panel">
         <div id="expense-list"></div>
@@ -248,6 +161,117 @@
       </div>
     </div>
     <canvas id="expense-chart"></canvas>
+  </div>
+</div>
+
+<!-- Modal: nuevo/editar movimiento -->
+<div id="expense-modal" class="modal-overlay" hidden>
+  <div class="modal-card modal-card--wide">
+    <div class="modal-header">
+      <h3 id="form-title">Nuevo movimiento</h3>
+      <button class="btn-icon" id="btn-cancel" aria-label="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <p id="error-expense" class="alert-error" hidden></p>
+    <form id="form-expense" novalidate>
+      <div class="type-toggle" role="group" aria-label="Tipo de movimiento">
+        <button type="button" class="type-btn active" data-type="expense">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Egreso
+        </button>
+        <button type="button" class="type-btn" data-type="income">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Ingreso
+        </button>
+      </div>
+      <input type="hidden" id="tx-type" name="type" value="expense" />
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="exp-description">Descripción</label>
+          <input id="exp-description" name="description" type="text" placeholder="Café, Alquiler…" required />
+        </div>
+        <div class="form-group">
+          <label for="exp-amount">Monto</label>
+          <input id="exp-amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required />
+        </div>
+        <div class="form-group">
+          <label for="exp-category">Categoría</label>
+          <select id="exp-category" name="category" class="category-select" required></select>
+        </div>
+        <div class="form-group">
+          <label for="exp-origin">Origen</label>
+          <select id="exp-origin" name="origin" class="origin-select" required></select>
+        </div>
+        <div class="form-group">
+          <label for="exp-date">Fecha</label>
+          <input id="exp-date" name="date" type="date" required />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: categorías -->
+<div id="categories-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Categorías</h3>
+      <button class="btn-icon" id="btn-close-categories" aria-label="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <p id="error-category" class="alert-error" hidden></p>
+    <div id="categories-list" style="margin-bottom:1.25rem;"></div>
+    <form id="form-category" novalidate>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="cat-name">Nombre</label>
+          <input id="cat-name" name="catname" type="text" placeholder="Ej: Mascotas" required />
+        </div>
+        <div class="form-group">
+          <label for="cat-color">Color</label>
+          <input id="cat-color" name="catcolor" type="color" value="#6366f1" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: orígenes -->
+<div id="origins-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Orígenes de pago</h3>
+      <button class="btn-icon" id="btn-close-origins" aria-label="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <p id="error-origin" class="alert-error" hidden></p>
+    <div id="origins-list" style="margin-bottom:1.25rem;"></div>
+    <form id="form-origin" novalidate>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="orig-name">Nombre</label>
+          <input id="orig-name" name="origname" type="text" placeholder="Ej: Billetera Virtual" required />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Agregar</button>
+      </div>
+    </form>
   </div>
 </div>
 
