@@ -5,6 +5,19 @@ const db = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
+const SEED_CATEGORIES = [
+  ['Alimentación', '#6366f1'],
+  ['Transporte',   '#f59e0b'],
+  ['Vivienda',     '#10b981'],
+  ['Entretenimiento', '#ef4444'],
+  ['Salud',        '#3b82f6'],
+  ['Compras',      '#ec4899'],
+  ['Educación',    '#8b5cf6'],
+  ['Viajes',       '#14b8a6'],
+  ['Inversiones',  '#22c55e'],
+  ['Otros',        '#94a3b8'],
+];
+
 async function initDb() {
   await db.batch([
     `CREATE TABLE IF NOT EXISTS users (
@@ -12,6 +25,12 @@ async function initDb() {
       name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      color TEXT NOT NULL DEFAULT '#94a3b8',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS transactions (
@@ -25,6 +44,10 @@ async function initDb() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`,
+    ...SEED_CATEGORIES.map(([name, color]) => ({
+      sql: 'INSERT OR IGNORE INTO categories (name, color) VALUES (?, ?)',
+      args: [name, color],
+    })),
   ]);
 }
 

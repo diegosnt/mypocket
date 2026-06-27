@@ -2,11 +2,6 @@ const { db } = require('../config/db');
 
 const VALID_TYPES = ['expense', 'income'];
 
-const VALID_CATEGORIES = [
-  'Alimentación', 'Transporte', 'Vivienda', 'Entretenimiento',
-  'Salud', 'Compras', 'Educación', 'Viajes', 'Inversiones', 'Otros',
-];
-
 async function getAll(req, res) {
   try {
     const result = await db.execute({
@@ -22,7 +17,7 @@ async function getAll(req, res) {
 
 async function create(req, res) {
   const { type, amount, description, category, date } = req.body;
-  const validationError = validate({ type, amount, description, category, date });
+  const validationError = await validate({ type, amount, description, category, date });
   if (validationError) return res.status(400).json({ error: validationError });
 
   try {
@@ -44,7 +39,7 @@ async function create(req, res) {
 async function update(req, res) {
   const { id } = req.params;
   const { type, amount, description, category, date } = req.body;
-  const validationError = validate({ type, amount, description, category, date });
+  const validationError = await validate({ type, amount, description, category, date });
   if (validationError) return res.status(400).json({ error: validationError });
 
   try {
@@ -93,7 +88,7 @@ async function remove(req, res) {
   }
 }
 
-function validate({ type, amount, description, category, date }) {
+async function validate({ type, amount, description, category, date }) {
   if (!type || !VALID_TYPES.includes(type)) {
     return 'El tipo debe ser egreso o ingreso';
   }
@@ -103,8 +98,15 @@ function validate({ type, amount, description, category, date }) {
   if (!description || description.trim().length === 0) {
     return 'La descripción es obligatoria';
   }
-  if (!category || !VALID_CATEGORIES.includes(category)) {
-    return `La categoría no es válida`;
+  if (!category) {
+    return 'La categoría es obligatoria';
+  }
+  const cat = await db.execute({
+    sql: 'SELECT id FROM categories WHERE name = ?',
+    args: [category],
+  });
+  if (cat.rows.length === 0) {
+    return 'La categoría no es válida';
   }
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return 'La fecha debe tener formato YYYY-MM-DD';

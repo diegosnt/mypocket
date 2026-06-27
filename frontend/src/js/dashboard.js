@@ -1,18 +1,10 @@
 import { api } from './api.js';
 
-const CATEGORIES = [
-  'Alimentación', 'Transporte', 'Vivienda', 'Entretenimiento',
-  'Salud', 'Compras', 'Educación', 'Viajes', 'Inversiones', 'Otros',
-];
-
-const CATEGORY_COLORS = [
-  '#6366f1', '#f59e0b', '#10b981', '#ef4444',
-  '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6', '#22c55e', '#94a3b8',
-];
-
+let categories = [];
 let transactions = [];
 let chart = null;
 let editingId = null;
+let editingCategoryId = null;
 
 function formatAmount(amount) {
   const currency = localStorage.getItem('currency') || 'USD';
@@ -29,12 +21,15 @@ export async function initDashboard(user) {
   document.getElementById('user-name').textContent = user.name;
   document.getElementById('btn-logout').addEventListener('click', logout);
 
-  populateCategorySelect();
+  await loadCategories();
   await loadTransactions();
   setupForm();
   setupTypeToggle();
+  setupCategoryPanel();
   document.getElementById('btn-add-expense').addEventListener('click', openAddForm);
   document.getElementById('btn-cancel').addEventListener('click', closeForm);
+  document.getElementById('btn-categories').addEventListener('click', toggleCategoryPanel);
+  document.getElementById('btn-close-categories').addEventListener('click', toggleCategoryPanel);
   document.getElementById('filter-category').addEventListener('change', renderList);
   document.getElementById('filter-type').addEventListener('change', renderList);
   document.getElementById('filter-month').addEventListener('change', renderChart);
@@ -56,21 +51,38 @@ function logout() {
   window.location.reload();
 }
 
-function populateCategorySelect() {
-  const selects = document.querySelectorAll('.category-select');
-  const filterCat = document.getElementById('filter-category');
-  CATEGORIES.forEach((cat) => {
-    selects.forEach((sel) => {
+async function loadCategories() {
+  try {
+    categories = await api.categories.getAll();
+    refreshCategorySelects();
+  } catch (err) {
+    console.error('Failed to load categories:', err);
+  }
+}
+
+function refreshCategorySelects() {
+  document.querySelectorAll('.category-select').forEach((sel) => {
+    const current = sel.value;
+    sel.innerHTML = '';
+    categories.forEach((cat) => {
       const opt = document.createElement('option');
-      opt.value = cat;
-      opt.textContent = cat;
+      opt.value = cat.name;
+      opt.textContent = cat.name;
       sel.appendChild(opt);
     });
+    if (current) sel.value = current;
+  });
+
+  const filterCat = document.getElementById('filter-category');
+  const currentFilter = filterCat.value;
+  filterCat.innerHTML = '<option value="">Todas las categorías</option>';
+  categories.forEach((cat) => {
     const opt = document.createElement('option');
-    opt.value = cat;
-    opt.textContent = cat;
+    opt.value = cat.name;
+    opt.textContent = cat.name;
     filterCat.appendChild(opt);
   });
+  if (currentFilter) filterCat.value = currentFilter;
 }
 
 async function loadTransactions() {
@@ -326,9 +338,9 @@ async function deleteTransaction(id) {
   }
 }
 
-function categoryColor(category) {
-  const idx = CATEGORIES.indexOf(category);
-  return CATEGORY_COLORS[idx >= 0 ? idx : CATEGORY_COLORS.length - 1];
+function categoryColor(name) {
+  const cat = categories.find((c) => c.name === name);
+  return cat ? cat.color : '#94a3b8';
 }
 
 function formatDate(dateStr) {
@@ -339,4 +351,110 @@ function formatDate(dateStr) {
 
 function escHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ─── Category panel ───────────────────────────────
+
+function toggleCategoryPanel() {
+  const panel = document.getElementById('categories-panel');
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) renderCategoryList();
+}
+
+function renderCategoryList() {
+  const list = document.getElementById('categories-list');
+  if (categories.length === 0) {
+    list.innerHTML = '<p style="color:var(--color-text-muted);font-size:.875rem;">Sin categorías.</p>';
+    return;
+  }
+  list.innerHTML = categories.map((cat) => `
+    <div class="category-row" data-id="${cat.id}">
+      <span class="category-color-dot" style="background:${cat.color}"></span>
+      <span class="category-row-name">${escHtml(cat.name)}</span>
+      <div class="expense-actions">
+        <button class="btn-icon btn-edit-cat" aria-label="Editar" data-id="${cat.id}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="btn-icon btn-delete-cat" aria-label="Eliminar" data-id="${cat.id}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.btn-edit-cat').forEach((btn) => {
+    btn.addEventListener('click', () => openEditCategory(Number(btn.dataset.id)));
+  });
+  list.querySelectorAll('.btn-delete-cat').forEach((btn) => {
+    btn.addEventListener('click', () => deleteCategory(Number(btn.dataset.id)));
+  });
+}
+
+function setupCategoryPanel() {
+  const form = document.getElementById('form-category');
+  const errorEl = document.getElementById('error-category');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    const body = { name: form.catname.value.trim(), color: form.catcolor.value };
+    try {
+      if (editingCategoryId) {
+        const updated = await api.categories.update(editingCategoryId, body);
+        categories = categories.map((c) => (c.id === editingCategoryId ? updated : c));
+        editingCategoryId = null;
+        btn.textContent = 'Agregar';
+      } else {
+        const created = await api.categories.create(body);
+        categories.push(created);
+        categories.sort((a, b) => a.name.localeCompare(b.name));
+      }
+      form.reset();
+      form.catcolor.value = '#6366f1';
+      refreshCategorySelects();
+      renderCategoryList();
+      renderList();
+      renderChart();
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+function openEditCategory(id) {
+  const cat = categories.find((c) => c.id === id);
+  if (!cat) return;
+  editingCategoryId = id;
+  const form = document.getElementById('form-category');
+  form.catname.value = cat.name;
+  form.catcolor.value = cat.color;
+  form.querySelector('button[type="submit"]').textContent = 'Guardar cambios';
+  form.catname.focus();
+}
+
+async function deleteCategory(id) {
+  const cat = categories.find((c) => c.id === id);
+  if (!cat || !confirm(`¿Eliminar la categoría "${cat.name}"?`)) return;
+  const errorEl = document.getElementById('error-category');
+  errorEl.hidden = true;
+  try {
+    await api.categories.delete(id);
+    categories = categories.filter((c) => c.id !== id);
+    refreshCategorySelects();
+    renderCategoryList();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.hidden = false;
+  }
 }

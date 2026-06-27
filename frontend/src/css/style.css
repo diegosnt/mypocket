@@ -405,6 +405,36 @@ input:focus, select:focus {
   padding: 2rem 0;
 }
 
+/* ─── Category rows (management panel) ──────────── */
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .55rem .25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.category-row:last-child { border-bottom: none; }
+
+.category-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+input[type="color"] {
+  padding: .25rem;
+  height: 2.4rem;
+  cursor: pointer;
+}
+
+.category-row-name {
+  flex: 1;
+  font-size: .9rem;
+}
+
 /* ─── Type dot ───────────────────────────────────── */
 
 .type-dot {

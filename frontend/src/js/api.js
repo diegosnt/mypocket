@@ -29,6 +29,12 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  categories: {
+    getAll: () => request('/api/categories'),
+    create: (body) => request('/api/categories', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id, body) => request(`/api/categories/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id) => request(`/api/categories/${id}`, { method: 'DELETE' }),
+  },
   auth: {
     register: (body) =>
       request('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),

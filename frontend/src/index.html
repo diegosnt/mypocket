@@ -111,12 +111,41 @@
         <select id="filter-category" aria-label="Filtrar por categoría">
           <option value="">Todas las categorías</option>
         </select>
+        <button id="btn-categories" class="btn btn-secondary" style="width:auto;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+          </svg>
+          Categorías
+        </button>
         <button id="btn-add-expense" class="btn btn-primary" style="width:auto;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           Nuevo
         </button>
+      </div>
+
+      <!-- Panel de categorías -->
+      <div id="categories-panel" class="form-panel" hidden>
+        <h3>Categorías</h3>
+        <p id="error-category" class="alert-error" hidden></p>
+        <div id="categories-list" style="margin-bottom:1.25rem;"></div>
+        <form id="form-category" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="cat-name">Nombre</label>
+              <input id="cat-name" name="catname" type="text" placeholder="Ej: Mascotas" required />
+            </div>
+            <div class="form-group">
+              <label for="cat-color">Color</label>
+              <input id="cat-color" name="catcolor" type="color" value="#6366f1" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="btn-close-categories" class="btn btn-secondary">Cerrar</button>
+            <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Agregar</button>
+          </div>
+        </form>
       </div>
 
       <!-- Panel de carga / edición -->
