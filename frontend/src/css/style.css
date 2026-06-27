@@ -301,6 +301,7 @@ input:focus, select:focus {
   background: var(--color-surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  overflow-x: hidden;
   overflow-y: auto;
   max-height: 65vh;
 }
@@ -316,6 +317,7 @@ input:focus, select:focus {
   width: 100%;
   border-collapse: collapse;
   font-size: .875rem;
+  table-layout: fixed;
 }
 
 .tx-table thead {

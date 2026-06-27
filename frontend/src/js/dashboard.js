@@ -14,7 +14,7 @@ const colFilters = { description: '', category: '', type: '', origin: '' };
 let tableInitialized = false;
 
 function formatAmount(amount) {
-  const currency = localStorage.getItem('currency') || 'USD';
+  const currency = localStorage.getItem('currency') || 'ARS';
   const locale = currency === 'ARS' ? 'es-AR' : 'en-US';
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -54,7 +54,7 @@ export async function initDashboard(user) {
   window.addEventListener('themechange', renderChart);
 
   const currencySelect = document.getElementById('currency-select');
-  currencySelect.value = localStorage.getItem('currency') || 'USD';
+  currencySelect.value = localStorage.getItem('currency') || 'ARS';
   currencySelect.addEventListener('change', () => {
     localStorage.setItem('currency', currencySelect.value);
     renderList();
@@ -204,6 +204,15 @@ function renderList() {
 function buildTableShell() {
   return `
     <table class="tx-table">
+      <colgroup>
+        <col style="width:82px">
+        <col>
+        <col style="width:108px">
+        <col style="width:98px">
+        <col style="width:72px">
+        <col style="width:100px">
+        <col style="width:66px">
+      </colgroup>
       <thead>
         <tr class="tx-head">
           <th class="sortable" data-col="date">Fecha <span class="sort-icon" data-col="date"></span></th>
@@ -834,9 +843,9 @@ function categoryColor(name) {
 }
 
 function formatDate(dateStr) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-AR', {
-    year: 'numeric', month: 'short', day: 'numeric',
-  });
+  const [y, m, d] = dateStr.split('-');
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  return `${d} ${months[Number(m) - 1]}. ${y}`;
 }
 
 function escHtml(str) {
