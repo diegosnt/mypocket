@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MyPocket — Personal Expense Tracker" />
+  <title>MyPocket</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ─── Auth View ─────────────────────────────────── -->
+<section id="view-auth">
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="15" rx="2"/>
+          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          <line x1="12" y1="12" x2="12" y2="16"/>
+          <line x1="10" y1="14" x2="14" y2="14"/>
+        </svg>
+        MyPocket
+      </div>
+
+      <div class="auth-tabs" role="tablist">
+        <button id="tab-login" role="tab" class="active" aria-selected="true">Sign In</button>
+        <button id="tab-register" role="tab" aria-selected="false">Create Account</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="form-login" novalidate>
+        <p id="error-login" class="alert-error" hidden></p>
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input id="login-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Sign In</button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="form-register" hidden novalidate>
+        <p id="error-register" class="alert-error" hidden></p>
+        <div class="form-group">
+          <label for="reg-name">Full Name</label>
+          <input id="reg-name" name="fullname" type="text" autocomplete="name" placeholder="Jane Doe" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Email</label>
+          <input id="reg-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password <small>(min. 6 characters)</small></label>
+          <input id="reg-password" name="password" type="password" autocomplete="new-password" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Dashboard View ────────────────────────────── -->
+<section id="view-dashboard" hidden>
+  <div class="dashboard">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="15" rx="2"/>
+          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          <line x1="12" y1="12" x2="12" y2="16"/>
+          <line x1="10" y1="14" x2="14" y2="14"/>
+        </svg>
+        MyPocket
+      </div>
+      <div class="topbar-right">
+        <span id="user-name"></span>
+        <button id="btn-logout" class="btn btn-secondary" style="padding:.45rem .9rem;font-size:.875rem;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-body">
+
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <p>This month</p>
+          <strong id="total-month">$0.00</strong>
+        </div>
+        <div class="summary-card">
+          <p>Transactions</p>
+          <strong id="count-month">0</strong>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <h2>Expenses</h2>
+        <select id="filter-category" aria-label="Filter by category">
+          <option value="">All categories</option>
+        </select>
+        <button id="btn-add-expense" class="btn btn-primary" style="width:auto;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Expense
+        </button>
+      </div>
+
+      <!-- Add / Edit Form Panel -->
+      <div id="expense-form-panel" class="form-panel" hidden>
+        <h3 id="form-title">Add Expense</h3>
+        <p id="error-expense" class="alert-error" hidden></p>
+        <form id="form-expense" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="exp-description">Description</label>
+              <input id="exp-description" name="description" type="text" placeholder="Coffee, Rent…" required />
+            </div>
+            <div class="form-group">
+              <label for="exp-amount">Amount ($)</label>
+              <input id="exp-amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required />
+            </div>
+            <div class="form-group">
+              <label for="exp-category">Category</label>
+              <select id="exp-category" name="category" class="category-select" required></select>
+            </div>
+            <div class="form-group">
+              <label for="exp-date">Date</label>
+              <input id="exp-date" name="date" type="date" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="btn-cancel" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Save</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Expense List -->
+      <div class="expenses-panel">
+        <div id="expense-list"></div>
+      </div>
+
+      <!-- Chart -->
+      <aside class="chart-panel">
+        <h3>
+          Spending by Category —
+          <input id="filter-month" type="month" style="border:none;background:none;font-size:.85rem;color:var(--color-text-muted);cursor:pointer;" />
+        </h3>
+        <canvas id="expense-chart"></canvas>
+      </aside>
+
+    </main>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script type="module">
+  import { initAuth, showAuth, showDashboard } from './js/auth.js';
+  import { initDashboard } from './js/dashboard.js';
+
+  const storedUser = localStorage.getItem('user');
+
+  if (storedUser && localStorage.getItem('token')) {
+    showDashboard();
+    initDashboard(JSON.parse(storedUser));
+  } else {
+    showAuth();
+  }
+
+  initAuth((user) => {
+    showDashboard();
+    initDashboard(user);
+  });
+
+  // Set current month as default for filter
+  const now = new Date();
+  document.getElementById('filter-month').value =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+</script>
+</body>
+</html>

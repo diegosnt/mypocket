@@ -1,0 +1,47 @@
+const BASE_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : '';
+
+async function request(path, options = {}) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.reload();
+    return;
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Unexpected error' }));
+    throw new Error(err.error || 'Request failed');
+  }
+
+  return res.status === 204 ? null : res.json();
+}
+
+export const api = {
+  auth: {
+    register: (body) =>
+      request('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+    login: (body) =>
+      request('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  },
+  expenses: {
+    getAll: () => request('/api/expenses'),
+    create: (body) =>
+      request('/api/expenses', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id, body) =>
+      request(`/api/expenses/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id) =>
+      request(`/api/expenses/${id}`, { method: 'DELETE' }),
+  },
+};
