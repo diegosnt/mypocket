@@ -30,30 +30,8 @@ function clearError(el) {
 }
 
 export function initAuth(onAuthenticated) {
-  const tabLogin = document.getElementById('tab-login');
-  const tabRegister = document.getElementById('tab-register');
   const formLogin = document.getElementById('form-login');
-  const formRegister = document.getElementById('form-register');
   const errorLogin = document.getElementById('error-login');
-  const errorRegister = document.getElementById('error-register');
-
-  tabLogin.addEventListener('click', () => {
-    tabLogin.classList.add('active');
-    tabRegister.classList.remove('active');
-    formLogin.hidden = false;
-    formRegister.hidden = true;
-    clearError(errorLogin);
-    clearError(errorRegister);
-  });
-
-  tabRegister.addEventListener('click', () => {
-    tabRegister.classList.add('active');
-    tabLogin.classList.remove('active');
-    formRegister.hidden = false;
-    formLogin.hidden = true;
-    clearError(errorLogin);
-    clearError(errorRegister);
-  });
 
   formLogin.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -70,27 +48,6 @@ export function initAuth(onAuthenticated) {
       onAuthenticated(data.user);
     } catch (err) {
       showError(errorLogin, err.message);
-    } finally {
-      setLoading(btn, false);
-    }
-  });
-
-  formRegister.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearError(errorRegister);
-    const btn = formRegister.querySelector('button[type="submit"]');
-    setLoading(btn, true);
-    try {
-      const data = await api.auth.register({
-        name: formRegister.fullname.value.trim(),
-        email: formRegister.email.value.trim(),
-        password: formRegister.password.value,
-      });
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      onAuthenticated(data.user);
-    } catch (err) {
-      showError(errorRegister, err.message);
     } finally {
       setLoading(btn, false);
     }

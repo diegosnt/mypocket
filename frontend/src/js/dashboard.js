@@ -2,12 +2,12 @@ import { api } from './api.js';
 
 const CATEGORIES = [
   'Food', 'Transport', 'Housing', 'Entertainment',
-  'Health', 'Shopping', 'Education', 'Travel', 'Other',
+  'Health', 'Shopping', 'Education', 'Travel', 'Investment', 'Other',
 ];
 
 const CATEGORY_COLORS = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444',
-  '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6', '#94a3b8',
+  '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6', '#22c55e', '#94a3b8',
 ];
 
 let expenses = [];
@@ -25,6 +25,7 @@ export async function initDashboard(user) {
   document.getElementById('btn-cancel').addEventListener('click', closeForm);
   document.getElementById('filter-category').addEventListener('change', renderList);
   document.getElementById('filter-month').addEventListener('change', renderChart);
+  window.addEventListener('themechange', renderChart);
 }
 
 function logout() {

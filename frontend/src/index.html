@@ -6,6 +6,10 @@
   <meta name="description" content="MyPocket — Personal Expense Tracker" />
   <title>MyPocket</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script>
+    const _t = localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', _t);
+  </script>
 </head>
 <body>
 
@@ -24,8 +28,7 @@
       </div>
 
       <div class="auth-tabs" role="tablist">
-        <button id="tab-login" role="tab" class="active" aria-selected="true">Sign In</button>
-        <button id="tab-register" role="tab" aria-selected="false">Create Account</button>
+        <button class="btn-theme-toggle btn-icon" aria-label="Toggle theme" style="margin-left:auto;"></button>
       </div>
 
       <!-- Login Form -->
@@ -40,24 +43,6 @@
           <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
         </div>
         <button type="submit" class="btn btn-primary">Sign In</button>
-      </form>
-
-      <!-- Register Form -->
-      <form id="form-register" hidden novalidate>
-        <p id="error-register" class="alert-error" hidden></p>
-        <div class="form-group">
-          <label for="reg-name">Full Name</label>
-          <input id="reg-name" name="fullname" type="text" autocomplete="name" placeholder="Jane Doe" required />
-        </div>
-        <div class="form-group">
-          <label for="reg-email">Email</label>
-          <input id="reg-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
-        </div>
-        <div class="form-group">
-          <label for="reg-password">Password <small>(min. 6 characters)</small></label>
-          <input id="reg-password" name="password" type="password" autocomplete="new-password" placeholder="••••••••" required />
-        </div>
-        <button type="submit" class="btn btn-primary">Create Account</button>
       </form>
     </div>
   </div>
@@ -80,6 +65,7 @@
       </div>
       <div class="topbar-right">
         <span id="user-name"></span>
+        <button class="btn-theme-toggle btn-icon" aria-label="Toggle theme"></button>
         <button id="btn-logout" class="btn btn-secondary" style="padding:.45rem .9rem;font-size:.875rem;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -172,6 +158,9 @@
 <script type="module">
   import { initAuth, showAuth, showDashboard } from './js/auth.js';
   import { initDashboard } from './js/dashboard.js';
+  import { initTheme } from './js/theme.js';
+
+  initTheme();
 
   const storedUser = localStorage.getItem('user');
 

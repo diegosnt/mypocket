@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 const VALID_CATEGORIES = [
   'Food', 'Transport', 'Housing', 'Entertainment',
-  'Health', 'Shopping', 'Education', 'Travel', 'Other',
+  'Health', 'Shopping', 'Education', 'Travel', 'Investment', 'Other',
 ];
 
 async function getAll(req, res) {
