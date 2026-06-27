@@ -381,6 +381,11 @@ function renderTableBody() {
         </td>
         <td class="tx-actions-cell">
           <div class="tx-actions">
+            <button class="btn-icon btn-clone" aria-label="Clonar" data-id="${t.id}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+            </button>
             <button class="btn-icon btn-edit" aria-label="Edit" data-id="${t.id}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -398,6 +403,9 @@ function renderTableBody() {
       </tr>`;
   }).join('');
 
+  tbody.querySelectorAll('.btn-clone').forEach((btn) => {
+    btn.addEventListener('click', () => cloneTransaction(Number(btn.dataset.id)));
+  });
   tbody.querySelectorAll('.btn-edit').forEach((btn) => {
     btn.addEventListener('click', () => openEditForm(Number(btn.dataset.id)));
   });
@@ -438,6 +446,11 @@ function renderCards() {
       <div class="expense-right">
         <span class="expense-amount ${isIncome ? 'amount--income' : ''}">${isIncome ? '+' : '-'}${formatAmount(t.amount)}</span>
         <div class="expense-actions">
+          <button class="btn-icon btn-clone" aria-label="Clonar" data-id="${t.id}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </button>
           <button class="btn-icon btn-edit" aria-label="Edit" data-id="${t.id}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -455,6 +468,9 @@ function renderCards() {
     </div>`;
   }).join('');
 
+  list.querySelectorAll('.btn-clone').forEach((btn) => {
+    btn.addEventListener('click', () => cloneTransaction(Number(btn.dataset.id)));
+  });
   list.querySelectorAll('.btn-edit').forEach((btn) => {
     btn.addEventListener('click', () => openEditForm(Number(btn.dataset.id)));
   });
@@ -652,6 +668,24 @@ function setFormType(type) {
 function closeForm() {
   document.getElementById('expense-modal').hidden = true;
   editingId = null;
+}
+
+function cloneTransaction(id) {
+  const tx = transactions.find((t) => t.id === id);
+  if (!tx) return;
+  editingId = null;
+  const form = document.getElementById('form-expense');
+  form.reset();
+  setFormType(tx.type);
+  form.description.value = tx.description;
+  form.amount.value = tx.amount;
+  form.category.value = tx.category;
+  form.origin.value = tx.origin || 'Débito';
+  form.date.value = new Date().toISOString().slice(0, 10);
+  document.getElementById('form-title').textContent = 'Nuevo movimiento';
+  document.getElementById('error-expense').hidden = true;
+  document.getElementById('expense-modal').hidden = false;
+  form.description.focus();
 }
 
 async function deleteTransaction(id) {

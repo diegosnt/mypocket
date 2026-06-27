@@ -187,6 +187,7 @@ input:focus, select:focus {
 }
 
 .btn-icon:hover { background: var(--color-bg); color: var(--color-text); }
+.btn-clone:hover { color: var(--color-success); }
 .btn-edit:hover { color: var(--color-primary); }
 .btn-delete:hover { color: var(--color-danger); }
 
