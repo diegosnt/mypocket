@@ -117,6 +117,12 @@
           </svg>
           Categorías
         </button>
+        <button id="btn-origins" class="btn btn-secondary" style="width:auto;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+          Orígenes
+        </button>
         <button id="btn-add-expense" class="btn btn-primary" style="width:auto;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -143,6 +149,25 @@
           </div>
           <div class="form-actions">
             <button type="button" id="btn-close-categories" class="btn btn-secondary">Cerrar</button>
+            <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Agregar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Panel de orígenes -->
+      <div id="origins-panel" class="form-panel" hidden>
+        <h3>Orígenes de pago</h3>
+        <p id="error-origin" class="alert-error" hidden></p>
+        <div id="origins-list" style="margin-bottom:1.25rem;"></div>
+        <form id="form-origin" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="orig-name">Nombre</label>
+              <input id="orig-name" name="origname" type="text" placeholder="Ej: Billetera Virtual" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="btn-close-origins" class="btn btn-secondary">Cerrar</button>
             <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Agregar</button>
           </div>
         </form>
@@ -176,6 +201,10 @@
             <div class="form-group">
               <label for="exp-category">Categoría</label>
               <select id="exp-category" name="category" class="category-select" required></select>
+            </div>
+            <div class="form-group">
+              <label for="exp-origin">Origen</label>
+              <select id="exp-origin" name="origin" class="origin-select" required></select>
             </div>
             <div class="form-group">
               <label for="exp-date">Fecha</label>

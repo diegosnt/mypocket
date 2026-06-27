@@ -18,11 +18,30 @@ const SEED_CATEGORIES = [
   ['Otros',        '#94a3b8'],
 ];
 
+const SEED_ORIGINS = [
+  ['Débito'],
+  ['Crédito'],
+  ['Efectivo'],
+  ['Transferencia'],
+  ['Cuenta Digital'],
+];
+
 async function initDb() {
   await db.batch([
-    // migration: add currency column if it doesn't exist yet
     `ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'ARS'`,
   ]).catch(() => {});
+
+  await db.batch([
+    `ALTER TABLE transactions ADD COLUMN origin TEXT NOT NULL DEFAULT 'Débito'`,
+  ]).catch(() => {});
+
+  await db.execute(
+    `CREATE TABLE IF NOT EXISTS origins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`
+  ).catch(() => {});
 
   await db.batch([
     `CREATE TABLE IF NOT EXISTS users (
@@ -52,6 +71,10 @@ async function initDb() {
     ...SEED_CATEGORIES.map(([name, color]) => ({
       sql: 'INSERT OR IGNORE INTO categories (name, color) VALUES (?, ?)',
       args: [name, color],
+    })),
+    ...SEED_ORIGINS.map(([name]) => ({
+      sql: 'INSERT OR IGNORE INTO origins (name) VALUES (?)',
+      args: [name],
     })),
   ]);
 }

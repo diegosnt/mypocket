@@ -29,6 +29,12 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  origins: {
+    getAll: () => request('/api/origins'),
+    create: (body) => request('/api/origins', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id, body) => request(`/api/origins/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id) => request(`/api/origins/${id}`, { method: 'DELETE' }),
+  },
   categories: {
     getAll: () => request('/api/categories'),
     create: (body) => request('/api/categories', { method: 'POST', body: JSON.stringify(body) }),

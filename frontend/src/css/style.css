@@ -408,6 +408,19 @@ input:focus, select:focus {
 .tx-type--income  { background: #10b98118; color: var(--color-success); }
 .tx-type--expense { background: #ef444418; color: var(--color-danger); }
 
+.tx-origin-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: .72rem;
+  font-weight: 500;
+  padding: .18rem .5rem;
+  border-radius: 20px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
 .tx-actions { display: flex; gap: .15rem; justify-content: flex-end; }
 
 .tx-empty {

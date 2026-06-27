@@ -17,14 +17,14 @@ async function getAll(req, res) {
 }
 
 async function create(req, res) {
-  const { type, amount, description, category, date, currency } = req.body;
-  const validationError = await validate({ type, amount, description, category, date, currency });
+  const { type, amount, description, category, date, currency, origin } = req.body;
+  const validationError = await validate({ type, amount, description, category, date, currency, origin });
   if (validationError) return res.status(400).json({ error: validationError });
 
   try {
     const result = await db.execute({
-      sql: 'INSERT INTO transactions (user_id, type, amount, description, category, date, currency) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      args: [req.user.id, type, parseFloat(amount), description.trim(), category, date, currency],
+      sql: 'INSERT INTO transactions (user_id, type, amount, description, category, date, currency, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [req.user.id, type, parseFloat(amount), description.trim(), category, date, currency, origin],
     });
     const row = await db.execute({
       sql: 'SELECT * FROM transactions WHERE id = ?',
@@ -39,8 +39,8 @@ async function create(req, res) {
 
 async function update(req, res) {
   const { id } = req.params;
-  const { type, amount, description, category, date, currency } = req.body;
-  const validationError = await validate({ type, amount, description, category, date, currency });
+  const { type, amount, description, category, date, currency, origin } = req.body;
+  const validationError = await validate({ type, amount, description, category, date, currency, origin });
   if (validationError) return res.status(400).json({ error: validationError });
 
   try {
@@ -53,8 +53,8 @@ async function update(req, res) {
     }
 
     await db.execute({
-      sql: 'UPDATE transactions SET type = ?, amount = ?, description = ?, category = ?, date = ?, currency = ? WHERE id = ?',
-      args: [type, parseFloat(amount), description.trim(), category, date, currency, id],
+      sql: 'UPDATE transactions SET type = ?, amount = ?, description = ?, category = ?, date = ?, currency = ?, origin = ? WHERE id = ?',
+      args: [type, parseFloat(amount), description.trim(), category, date, currency, origin, id],
     });
     const row = await db.execute({
       sql: 'SELECT * FROM transactions WHERE id = ?',
@@ -89,7 +89,7 @@ async function remove(req, res) {
   }
 }
 
-async function validate({ type, amount, description, category, date, currency }) {
+async function validate({ type, amount, description, category, date, currency, origin }) {
   if (!type || !VALID_TYPES.includes(type)) {
     return 'El tipo debe ser egreso o ingreso';
   }
@@ -115,6 +115,16 @@ async function validate({ type, amount, description, category, date, currency })
   if (cat.rows.length === 0) {
     return 'La categoría no es válida';
   }
+  if (!origin || origin.trim().length === 0) {
+    return 'El origen es obligatorio';
+  }
+  const orig = await db.execute({
+    sql: 'SELECT id FROM origins WHERE name = ?',
+    args: [origin],
+  });
+  if (orig.rows.length === 0) {
+    return 'El origen no es válido';
+  }
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return 'La fecha debe tener formato YYYY-MM-DD';
   }
@@ -126,6 +136,7 @@ function normalizeRow(row) {
     id: Number(row.id),
     type: row.type,
     currency: row.currency || 'ARS',
+    origin: row.origin || 'Débito',
     amount: Number(row.amount),
     description: row.description,
     category: row.category,
