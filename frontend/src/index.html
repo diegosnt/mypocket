@@ -65,10 +65,6 @@
       </div>
       <div class="topbar-right">
         <span id="user-name"></span>
-        <select id="currency-select" aria-label="Moneda" title="Moneda">
-          <option value="USD">USD $</option>
-          <option value="ARS">ARS $</option>
-        </select>
         <button class="btn-theme-toggle btn-icon" aria-label="Cambiar tema"></button>
         <button id="btn-logout" class="btn btn-secondary" style="padding:.45rem .9rem;font-size:.875rem;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -103,6 +99,10 @@
       <!-- Barra de herramientas -->
       <div class="toolbar">
         <h2>Movimientos</h2>
+        <select id="currency-select" aria-label="Moneda">
+          <option value="USD">USD $</option>
+          <option value="ARS">ARS $</option>
+        </select>
         <select id="filter-type" aria-label="Filtrar por tipo">
           <option value="">Todos</option>
           <option value="expense">Egresos</option>

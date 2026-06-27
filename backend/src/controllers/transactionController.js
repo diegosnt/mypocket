@@ -1,6 +1,7 @@
 const { db } = require('../config/db');
 
-const VALID_TYPES = ['expense', 'income'];
+const VALID_TYPES      = ['expense', 'income'];
+const VALID_CURRENCIES = ['ARS', 'USD'];
 
 async function getAll(req, res) {
   try {
@@ -16,14 +17,14 @@ async function getAll(req, res) {
 }
 
 async function create(req, res) {
-  const { type, amount, description, category, date } = req.body;
-  const validationError = await validate({ type, amount, description, category, date });
+  const { type, amount, description, category, date, currency } = req.body;
+  const validationError = await validate({ type, amount, description, category, date, currency });
   if (validationError) return res.status(400).json({ error: validationError });
 
   try {
     const result = await db.execute({
-      sql: 'INSERT INTO transactions (user_id, type, amount, description, category, date) VALUES (?, ?, ?, ?, ?, ?)',
-      args: [req.user.id, type, parseFloat(amount), description.trim(), category, date],
+      sql: 'INSERT INTO transactions (user_id, type, amount, description, category, date, currency) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      args: [req.user.id, type, parseFloat(amount), description.trim(), category, date, currency],
     });
     const row = await db.execute({
       sql: 'SELECT * FROM transactions WHERE id = ?',
@@ -38,8 +39,8 @@ async function create(req, res) {
 
 async function update(req, res) {
   const { id } = req.params;
-  const { type, amount, description, category, date } = req.body;
-  const validationError = await validate({ type, amount, description, category, date });
+  const { type, amount, description, category, date, currency } = req.body;
+  const validationError = await validate({ type, amount, description, category, date, currency });
   if (validationError) return res.status(400).json({ error: validationError });
 
   try {
@@ -52,8 +53,8 @@ async function update(req, res) {
     }
 
     await db.execute({
-      sql: 'UPDATE transactions SET type = ?, amount = ?, description = ?, category = ?, date = ? WHERE id = ?',
-      args: [type, parseFloat(amount), description.trim(), category, date, id],
+      sql: 'UPDATE transactions SET type = ?, amount = ?, description = ?, category = ?, date = ?, currency = ? WHERE id = ?',
+      args: [type, parseFloat(amount), description.trim(), category, date, currency, id],
     });
     const row = await db.execute({
       sql: 'SELECT * FROM transactions WHERE id = ?',
@@ -88,9 +89,12 @@ async function remove(req, res) {
   }
 }
 
-async function validate({ type, amount, description, category, date }) {
+async function validate({ type, amount, description, category, date, currency }) {
   if (!type || !VALID_TYPES.includes(type)) {
     return 'El tipo debe ser egreso o ingreso';
+  }
+  if (!currency || !VALID_CURRENCIES.includes(currency)) {
+    return 'La moneda debe ser ARS o USD';
   }
   if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
     return 'El monto debe ser un número positivo';
@@ -119,6 +123,7 @@ function normalizeRow(row) {
     id: Number(row.id),
     user_id: Number(row.user_id),
     type: row.type,
+    currency: row.currency || 'ARS',
     amount: Number(row.amount),
     description: row.description,
     category: row.category,

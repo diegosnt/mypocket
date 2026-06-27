@@ -20,6 +20,11 @@ const SEED_CATEGORIES = [
 
 async function initDb() {
   await db.batch([
+    // migration: add currency column if it doesn't exist yet
+    `ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'ARS'`,
+  ]).catch(() => {});
+
+  await db.batch([
     `CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,

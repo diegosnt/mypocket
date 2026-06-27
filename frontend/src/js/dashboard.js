@@ -96,12 +96,18 @@ async function loadTransactions() {
   }
 }
 
+function selectedCurrency() {
+  return document.getElementById('currency-select').value || 'ARS';
+}
+
 function getFiltered() {
-  const cat = document.getElementById('filter-category').value;
-  const type = document.getElementById('filter-type').value;
+  const cat      = document.getElementById('filter-category').value;
+  const type     = document.getElementById('filter-type').value;
+  const currency = selectedCurrency();
   return transactions.filter((t) => {
-    if (cat && t.category !== cat) return false;
-    if (type && t.type !== type) return false;
+    if (t.currency !== currency) return false;
+    if (cat  && t.category !== cat)  return false;
+    if (type && t.type     !== type) return false;
     return true;
   });
 }
@@ -168,7 +174,7 @@ function renderChart() {
   const targetMonth = monthFilter || currentMonth;
 
   const monthExpenses = transactions.filter(
-    (t) => t.type === 'expense' && t.date.startsWith(targetMonth)
+    (t) => t.type === 'expense' && t.currency === selectedCurrency() && t.date.startsWith(targetMonth)
   );
 
   const totals = {};
@@ -219,7 +225,7 @@ function renderChart() {
 function updateSummary() {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthTx = transactions.filter((t) => t.date.startsWith(currentMonth));
+  const monthTx = transactions.filter((t) => t.date.startsWith(currentMonth) && t.currency === selectedCurrency());
 
   const income = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expenses = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
@@ -256,6 +262,7 @@ function setupForm() {
 
     const body = {
       type: document.getElementById('tx-type').value,
+      currency: selectedCurrency(),
       amount: form.amount.value,
       description: form.description.value,
       category: form.category.value,
