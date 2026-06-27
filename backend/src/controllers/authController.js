@@ -13,10 +13,10 @@ function signToken(user) {
 async function register(req, res) {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
-    return res.status(400).json({ error: 'Name, email and password are required' });
+    return res.status(400).json({ error: 'Nombre, correo y contraseña son obligatorios' });
   }
   if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
   }
 
   try {
@@ -25,7 +25,7 @@ async function register(req, res) {
       args: [email.toLowerCase()],
     });
     if (existing.rows.length > 0) {
-      return res.status(409).json({ error: 'Email already in use' });
+      return res.status(409).json({ error: 'El correo ya está registrado' });
     }
 
     const password_hash = await bcrypt.hash(password, 12);
@@ -45,7 +45,7 @@ async function register(req, res) {
 async function login(req, res) {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
+    return res.status(400).json({ error: 'Correo y contraseña son obligatorios' });
   }
 
   try {
@@ -55,12 +55,12 @@ async function login(req, res) {
     });
     const row = result.rows[0];
     if (!row) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
 
     const valid = await bcrypt.compare(password, row.password_hash);
     if (!valid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
 
     const user = { id: Number(row.id), name: row.name, email: row.email };

@@ -1,8 +1,8 @@
 import { api } from './api.js';
 
 const CATEGORIES = [
-  'Food', 'Transport', 'Housing', 'Entertainment',
-  'Health', 'Shopping', 'Education', 'Travel', 'Investment', 'Other',
+  'Alimentación', 'Transporte', 'Vivienda', 'Entretenimiento',
+  'Salud', 'Compras', 'Educación', 'Viajes', 'Inversiones', 'Otros',
 ];
 
 const CATEGORY_COLORS = [
@@ -10,22 +10,44 @@ const CATEGORY_COLORS = [
   '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6', '#22c55e', '#94a3b8',
 ];
 
-let expenses = [];
+let transactions = [];
 let chart = null;
 let editingId = null;
+
+function formatAmount(amount) {
+  const currency = localStorage.getItem('currency') || 'USD';
+  const locale = currency === 'ARS' ? 'es-AR' : 'en-US';
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
 
 export async function initDashboard(user) {
   document.getElementById('user-name').textContent = user.name;
   document.getElementById('btn-logout').addEventListener('click', logout);
 
   populateCategorySelect();
-  await loadExpenses();
+  await loadTransactions();
   setupForm();
+  setupTypeToggle();
   document.getElementById('btn-add-expense').addEventListener('click', openAddForm);
   document.getElementById('btn-cancel').addEventListener('click', closeForm);
   document.getElementById('filter-category').addEventListener('change', renderList);
+  document.getElementById('filter-type').addEventListener('change', renderList);
   document.getElementById('filter-month').addEventListener('change', renderChart);
   window.addEventListener('themechange', renderChart);
+
+  const currencySelect = document.getElementById('currency-select');
+  currencySelect.value = localStorage.getItem('currency') || 'USD';
+  currencySelect.addEventListener('change', () => {
+    localStorage.setItem('currency', currencySelect.value);
+    renderList();
+    renderChart();
+    updateSummary();
+  });
 }
 
 function logout() {
@@ -51,25 +73,30 @@ function populateCategorySelect() {
   });
 }
 
-async function loadExpenses() {
+async function loadTransactions() {
   try {
-    expenses = await api.expenses.getAll();
+    transactions = await api.transactions.getAll();
     renderList();
     renderChart();
     updateSummary();
   } catch (err) {
-    console.error('Failed to load expenses:', err);
+    console.error('Failed to load transactions:', err);
   }
 }
 
-function getFilteredExpenses() {
+function getFiltered() {
   const cat = document.getElementById('filter-category').value;
-  return cat ? expenses.filter((e) => e.category === cat) : expenses;
+  const type = document.getElementById('filter-type').value;
+  return transactions.filter((t) => {
+    if (cat && t.category !== cat) return false;
+    if (type && t.type !== type) return false;
+    return true;
+  });
 }
 
 function renderList() {
   const list = document.getElementById('expense-list');
-  const filtered = getFilteredExpenses();
+  const filtered = getFiltered();
 
   if (filtered.length === 0) {
     list.innerHTML = `
@@ -77,30 +104,33 @@ function renderList() {
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M9 14l2 2 4-4M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/>
         </svg>
-        <p>No expenses yet. Add your first one!</p>
+        <p>Sin movimientos. ¡Agregá el primero!</p>
       </div>`;
     return;
   }
 
-  list.innerHTML = filtered.map((exp) => `
-    <div class="expense-item" data-id="${exp.id}">
+  list.innerHTML = filtered.map((t) => {
+    const isIncome = t.type === 'income';
+    return `
+    <div class="expense-item" data-id="${t.id}">
       <div class="expense-left">
-        <span class="expense-category-badge" style="background:${categoryColor(exp.category)}22;color:${categoryColor(exp.category)}">${exp.category}</span>
+        <span class="type-dot ${isIncome ? 'type-dot--income' : 'type-dot--expense'}" title="${t.type}"></span>
+        <span class="expense-category-badge" style="background:${categoryColor(t.category)}22;color:${categoryColor(t.category)}">${t.category}</span>
         <div>
-          <p class="expense-description">${escHtml(exp.description)}</p>
-          <p class="expense-date">${formatDate(exp.date)}</p>
+          <p class="expense-description">${escHtml(t.description)}</p>
+          <p class="expense-date">${formatDate(t.date)}</p>
         </div>
       </div>
       <div class="expense-right">
-        <span class="expense-amount">$${Number(exp.amount).toFixed(2)}</span>
+        <span class="expense-amount ${isIncome ? 'amount--income' : ''}">${isIncome ? '+' : '-'}${formatAmount(t.amount)}</span>
         <div class="expense-actions">
-          <button class="btn-icon btn-edit" aria-label="Edit" data-id="${exp.id}">
+          <button class="btn-icon btn-edit" aria-label="Edit" data-id="${t.id}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
-          <button class="btn-icon btn-delete" aria-label="Delete" data-id="${exp.id}">
+          <button class="btn-icon btn-delete" aria-label="Delete" data-id="${t.id}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
               <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
@@ -108,14 +138,14 @@ function renderList() {
           </button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   list.querySelectorAll('.btn-edit').forEach((btn) => {
     btn.addEventListener('click', () => openEditForm(Number(btn.dataset.id)));
   });
   list.querySelectorAll('.btn-delete').forEach((btn) => {
-    btn.addEventListener('click', () => deleteExpense(Number(btn.dataset.id)));
+    btn.addEventListener('click', () => deleteTransaction(Number(btn.dataset.id)));
   });
 }
 
@@ -125,11 +155,13 @@ function renderChart() {
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const targetMonth = monthFilter || currentMonth;
 
-  const monthExpenses = expenses.filter((e) => e.date.startsWith(targetMonth));
+  const monthExpenses = transactions.filter(
+    (t) => t.type === 'expense' && t.date.startsWith(targetMonth)
+  );
 
   const totals = {};
-  monthExpenses.forEach((e) => {
-    totals[e.category] = (totals[e.category] || 0) + e.amount;
+  monthExpenses.forEach((t) => {
+    totals[t.category] = (totals[t.category] || 0) + t.amount;
   });
 
   const labels = Object.keys(totals);
@@ -142,20 +174,29 @@ function renderChart() {
   if (labels.length === 0) {
     canvas.parentElement.innerHTML = `
       <canvas id="expense-chart"></canvas>
-      <p class="chart-empty">No data for ${targetMonth}</p>`;
+      <p class="chart-empty">Sin gastos para ${targetMonth}</p>`;
     return;
   }
 
   chart = new Chart(document.getElementById('expense-chart'), {
     type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: 'var(--color-surface)' }] },
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: 'var(--color-surface)',
+      }],
+    },
     options: {
       plugins: {
-        legend: { position: 'bottom', labels: { color: 'var(--color-text)', padding: 12, font: { size: 12 } } },
+        legend: {
+          position: 'bottom',
+          labels: { color: 'var(--color-text)', padding: 12, font: { size: 12 } },
+        },
         tooltip: {
-          callbacks: {
-            label: (ctx) => ` ${ctx.label}: $${ctx.parsed.toFixed(2)}`,
-          },
+          callbacks: { label: (ctx) => ` ${ctx.label}: ${formatAmount(ctx.parsed)}` },
         },
       },
       cutout: '65%',
@@ -166,10 +207,30 @@ function renderChart() {
 function updateSummary() {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthExpenses = expenses.filter((e) => e.date.startsWith(currentMonth));
-  const total = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
-  document.getElementById('total-month').textContent = `$${total.toFixed(2)}`;
-  document.getElementById('count-month').textContent = monthExpenses.length;
+  const monthTx = transactions.filter((t) => t.date.startsWith(currentMonth));
+
+  const income = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expenses = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const balance = income - expenses;
+
+  document.getElementById('total-income').textContent = formatAmount(income);
+  document.getElementById('total-expenses').textContent = formatAmount(expenses);
+
+  const balanceEl = document.getElementById('total-balance');
+  balanceEl.textContent = (balance >= 0 ? '+' : '') + formatAmount(Math.abs(balance));
+  balanceEl.className = balance >= 0 ? 'amount--income' : 'amount--expense';
+}
+
+function setupTypeToggle() {
+  const btns = document.querySelectorAll('.type-btn');
+  const input = document.getElementById('tx-type');
+  btns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btns.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      input.value = btn.dataset.type;
+    });
+  });
 }
 
 function setupForm() {
@@ -182,6 +243,7 @@ function setupForm() {
     btn.disabled = true;
 
     const body = {
+      type: document.getElementById('tx-type').value,
       amount: form.amount.value,
       description: form.description.value,
       category: form.category.value,
@@ -190,11 +252,11 @@ function setupForm() {
 
     try {
       if (editingId) {
-        const updated = await api.expenses.update(editingId, body);
-        expenses = expenses.map((e) => (e.id === editingId ? updated : e));
+        const updated = await api.transactions.update(editingId, body);
+        transactions = transactions.map((t) => (t.id === editingId ? updated : t));
       } else {
-        const created = await api.expenses.create(body);
-        expenses.unshift(created);
+        const created = await api.transactions.create(body);
+        transactions.unshift(created);
       }
       closeForm();
       renderList();
@@ -208,7 +270,6 @@ function setupForm() {
     }
   });
 
-  // Default date to today
   form.date.value = new Date().toISOString().slice(0, 10);
 }
 
@@ -217,25 +278,34 @@ function openAddForm() {
   const form = document.getElementById('form-expense');
   form.reset();
   form.date.value = new Date().toISOString().slice(0, 10);
-  document.getElementById('form-title').textContent = 'Add Expense';
+  setFormType('expense');
+  document.getElementById('form-title').textContent = 'Nuevo movimiento';
   document.getElementById('error-expense').hidden = true;
   document.getElementById('expense-form-panel').hidden = false;
   form.description.focus();
 }
 
 function openEditForm(id) {
-  const exp = expenses.find((e) => e.id === id);
-  if (!exp) return;
+  const tx = transactions.find((t) => t.id === id);
+  if (!tx) return;
   editingId = id;
   const form = document.getElementById('form-expense');
-  form.description.value = exp.description;
-  form.amount.value = exp.amount;
-  form.category.value = exp.category;
-  form.date.value = exp.date;
-  document.getElementById('form-title').textContent = 'Edit Expense';
+  setFormType(tx.type);
+  form.description.value = tx.description;
+  form.amount.value = tx.amount;
+  form.category.value = tx.category;
+  form.date.value = tx.date;
+  document.getElementById('form-title').textContent = 'Editar movimiento';
   document.getElementById('error-expense').hidden = true;
   document.getElementById('expense-form-panel').hidden = false;
   form.description.focus();
+}
+
+function setFormType(type) {
+  document.getElementById('tx-type').value = type;
+  document.querySelectorAll('.type-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.type === type);
+  });
 }
 
 function closeForm() {
@@ -243,11 +313,11 @@ function closeForm() {
   editingId = null;
 }
 
-async function deleteExpense(id) {
-  if (!confirm('Delete this expense?')) return;
+async function deleteTransaction(id) {
+  if (!confirm('¿Eliminar este movimiento?')) return;
   try {
-    await api.expenses.delete(id);
-    expenses = expenses.filter((e) => e.id !== id);
+    await api.transactions.delete(id);
+    transactions = transactions.filter((t) => t.id !== id);
     renderList();
     renderChart();
     updateSummary();

@@ -16,7 +16,7 @@ export function showDashboard() {
 function setLoading(btn, loading) {
   btn.disabled = loading;
   btn.dataset.originalText = btn.dataset.originalText || btn.textContent;
-  btn.textContent = loading ? 'Please wait…' : btn.dataset.originalText;
+  btn.textContent = loading ? 'Espere…' : btn.dataset.originalText;
 }
 
 function showError(el, message) {

@@ -14,9 +14,10 @@ async function initDb() {
       password_hash TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-    `CREATE TABLE IF NOT EXISTS expenses (
+    `CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'expense',
       amount REAL NOT NULL,
       description TEXT NOT NULL,
       category TEXT NOT NULL,

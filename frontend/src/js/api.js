@@ -35,13 +35,13 @@ export const api = {
     login: (body) =>
       request('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   },
-  expenses: {
-    getAll: () => request('/api/expenses'),
+  transactions: {
+    getAll: () => request('/api/transactions'),
     create: (body) =>
-      request('/api/expenses', { method: 'POST', body: JSON.stringify(body) }),
+      request('/api/transactions', { method: 'POST', body: JSON.stringify(body) }),
     update: (id, body) =>
-      request(`/api/expenses/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+      request(`/api/transactions/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (id) =>
-      request(`/api/expenses/${id}`, { method: 'DELETE' }),
+      request(`/api/transactions/${id}`, { method: 'DELETE' }),
   },
 };

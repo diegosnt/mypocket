@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 module.exports = function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: 'No autorizado' });
   }
 
   const token = header.slice(7);
@@ -12,6 +12,6 @@ module.exports = function authMiddleware(req, res, next) {
     req.user = { id: payload.id, email: payload.email };
     next();
   } catch {
-    res.status(401).json({ error: 'Invalid or expired token' });
+    res.status(401).json({ error: 'Sesión inválida o expirada' });
   }
 };

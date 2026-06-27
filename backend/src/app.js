@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/expenses', require('./routes/expenses'));
+app.use('/api/transactions', require('./routes/transactions'));
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 

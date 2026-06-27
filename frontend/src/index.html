@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="MyPocket — Personal Expense Tracker" />
+  <meta name="description" content="MyPocket — Seguimiento de gastos personales" />
   <title>MyPocket</title>
   <link rel="stylesheet" href="css/style.css" />
   <script>
@@ -28,21 +28,21 @@
       </div>
 
       <div class="auth-tabs" role="tablist">
-        <button class="btn-theme-toggle btn-icon" aria-label="Toggle theme" style="margin-left:auto;"></button>
+        <button class="btn-theme-toggle btn-icon" aria-label="Cambiar tema" style="margin-left:auto;"></button>
       </div>
 
-      <!-- Login Form -->
+      <!-- Formulario de ingreso -->
       <form id="form-login" novalidate>
         <p id="error-login" class="alert-error" hidden></p>
         <div class="form-group">
-          <label for="login-email">Email</label>
-          <input id="login-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+          <label for="login-email">Correo electrónico</label>
+          <input id="login-email" name="email" type="email" autocomplete="email" placeholder="vos@ejemplo.com" required />
         </div>
         <div class="form-group">
-          <label for="login-password">Password</label>
+          <label for="login-password">Contraseña</label>
           <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
         </div>
-        <button type="submit" class="btn btn-primary">Sign In</button>
+        <button type="submit" class="btn btn-primary">Ingresar</button>
       </form>
     </div>
   </div>
@@ -65,86 +65,110 @@
       </div>
       <div class="topbar-right">
         <span id="user-name"></span>
-        <button class="btn-theme-toggle btn-icon" aria-label="Toggle theme"></button>
+        <select id="currency-select" aria-label="Moneda" title="Moneda">
+          <option value="USD">USD $</option>
+          <option value="ARS">ARS $</option>
+        </select>
+        <button class="btn-theme-toggle btn-icon" aria-label="Cambiar tema"></button>
         <button id="btn-logout" class="btn btn-secondary" style="padding:.45rem .9rem;font-size:.875rem;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          Logout
+          Salir
         </button>
       </div>
     </header>
 
-    <!-- Main Content -->
+    <!-- Contenido principal -->
     <main class="dashboard-body">
 
-      <!-- Summary Cards -->
+      <!-- Tarjetas de resumen -->
       <div class="summary-cards">
         <div class="summary-card">
-          <p>This month</p>
-          <strong id="total-month">$0.00</strong>
+          <p>Ingresos del mes</p>
+          <strong id="total-income" class="amount--income">$0.00</strong>
         </div>
         <div class="summary-card">
-          <p>Transactions</p>
-          <strong id="count-month">0</strong>
+          <p>Gastos del mes</p>
+          <strong id="total-expenses" class="amount--expense">$0.00</strong>
+        </div>
+        <div class="summary-card">
+          <p>Balance</p>
+          <strong id="total-balance">$0.00</strong>
         </div>
       </div>
 
-      <!-- Toolbar -->
+      <!-- Barra de herramientas -->
       <div class="toolbar">
-        <h2>Expenses</h2>
-        <select id="filter-category" aria-label="Filter by category">
-          <option value="">All categories</option>
+        <h2>Movimientos</h2>
+        <select id="filter-type" aria-label="Filtrar por tipo">
+          <option value="">Todos</option>
+          <option value="expense">Gastos</option>
+          <option value="income">Ingresos</option>
+        </select>
+        <select id="filter-category" aria-label="Filtrar por categoría">
+          <option value="">Todas las categorías</option>
         </select>
         <button id="btn-add-expense" class="btn btn-primary" style="width:auto;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          Add Expense
+          Nuevo
         </button>
       </div>
 
-      <!-- Add / Edit Form Panel -->
+      <!-- Panel de carga / edición -->
       <div id="expense-form-panel" class="form-panel" hidden>
-        <h3 id="form-title">Add Expense</h3>
+        <h3 id="form-title">Nuevo movimiento</h3>
         <p id="error-expense" class="alert-error" hidden></p>
         <form id="form-expense" novalidate>
+          <div class="type-toggle" role="group" aria-label="Tipo de movimiento">
+            <button type="button" class="type-btn active" data-type="expense">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Gasto
+            </button>
+            <button type="button" class="type-btn" data-type="income">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Ingreso
+            </button>
+          </div>
+          <input type="hidden" id="tx-type" name="type" value="expense" />
           <div class="form-grid">
             <div class="form-group">
-              <label for="exp-description">Description</label>
-              <input id="exp-description" name="description" type="text" placeholder="Coffee, Rent…" required />
+              <label for="exp-description">Descripción</label>
+              <input id="exp-description" name="description" type="text" placeholder="Café, Alquiler…" required />
             </div>
             <div class="form-group">
-              <label for="exp-amount">Amount ($)</label>
+              <label for="exp-amount">Monto</label>
               <input id="exp-amount" name="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required />
             </div>
             <div class="form-group">
-              <label for="exp-category">Category</label>
+              <label for="exp-category">Categoría</label>
               <select id="exp-category" name="category" class="category-select" required></select>
             </div>
             <div class="form-group">
-              <label for="exp-date">Date</label>
+              <label for="exp-date">Fecha</label>
               <input id="exp-date" name="date" type="date" required />
             </div>
           </div>
           <div class="form-actions">
-            <button type="button" id="btn-cancel" class="btn btn-secondary">Cancel</button>
-            <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Save</button>
+            <button type="button" id="btn-cancel" class="btn btn-secondary">Cancelar</button>
+            <button type="submit" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Guardar</button>
           </div>
         </form>
       </div>
 
-      <!-- Expense List -->
+      <!-- Lista de movimientos -->
       <div class="expenses-panel">
         <div id="expense-list"></div>
       </div>
 
-      <!-- Chart -->
+      <!-- Gráfico -->
       <aside class="chart-panel">
         <h3>
-          Spending by Category —
+          Gastos por categoría —
           <input id="filter-month" type="month" style="border:none;background:none;font-size:.85rem;color:var(--color-text-muted);cursor:pointer;" />
         </h3>
         <canvas id="expense-chart"></canvas>
@@ -176,7 +200,6 @@
     initDashboard(user);
   });
 
-  // Set current month as default for filter
   const now = new Date();
   document.getElementById('filter-month').value =
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
