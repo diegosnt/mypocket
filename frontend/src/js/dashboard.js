@@ -133,7 +133,7 @@ function renderList() {
     <div class="expense-item" data-id="${t.id}">
       <div class="expense-left">
         <span class="type-dot ${isIncome ? 'type-dot--income' : 'type-dot--expense'}" title="${t.type}"></span>
-        <span class="expense-category-badge" style="background:${categoryColor(t.category)}22;color:${categoryColor(t.category)}">${t.category}</span>
+        <span class="expense-category-badge" style="background:${categoryColor(t.category)}22;color:${categoryColor(t.category)}">${escHtml(t.category)}</span>
         <div>
           <p class="expense-description">${escHtml(t.description)}</p>
           <p class="expense-date">${formatDate(t.date)}</p>

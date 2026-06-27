@@ -102,6 +102,9 @@ async function validate({ type, amount, description, category, date, currency })
   if (!description || description.trim().length === 0) {
     return 'La descripción es obligatoria';
   }
+  if (description.trim().length > 200) {
+    return 'La descripción no puede superar los 200 caracteres';
+  }
   if (!category) {
     return 'La categoría es obligatoria';
   }
@@ -121,7 +124,6 @@ async function validate({ type, amount, description, category, date, currency })
 function normalizeRow(row) {
   return {
     id: Number(row.id),
-    user_id: Number(row.user_id),
     type: row.type,
     currency: row.currency || 'ARS',
     amount: Number(row.amount),

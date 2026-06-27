@@ -15,6 +15,9 @@ async function register(req, res) {
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Nombre, correo y contraseña son obligatorios' });
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Correo electrónico inválido' });
+  }
   if (password.length < 6) {
     return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
   }

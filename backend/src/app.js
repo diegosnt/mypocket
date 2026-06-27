@@ -1,14 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { initDb } = require('./config/db');
+
+const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:5500';
 
 const app = express();
 
 let _ready = null;
 
-app.use(cors());
-app.use(express.json());
+app.use(helmet());
+app.use(cors({ origin: ALLOWED_ORIGIN }));
+app.use(express.json({ limit: '20kb' }));
 
 app.use(async (_req, res, next) => {
   try {
