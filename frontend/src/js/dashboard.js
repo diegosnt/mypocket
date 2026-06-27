@@ -28,6 +28,9 @@ export async function initDashboard(user) {
   document.getElementById('user-name').textContent = user.name;
   document.getElementById('btn-logout').addEventListener('click', logout);
 
+  const currencySelect = document.getElementById('currency-select');
+  currencySelect.value = localStorage.getItem('currency') || 'ARS';
+
   await loadCategories();
   await loadOrigins();
   await loadTransactions();
@@ -53,8 +56,6 @@ export async function initDashboard(user) {
   document.getElementById('filter-month').addEventListener('change', renderChart);
   window.addEventListener('themechange', renderChart);
 
-  const currencySelect = document.getElementById('currency-select');
-  currencySelect.value = localStorage.getItem('currency') || 'ARS';
   currencySelect.addEventListener('change', () => {
     localStorage.setItem('currency', currencySelect.value);
     renderList();
@@ -843,9 +844,11 @@ function categoryColor(name) {
 }
 
 function formatDate(dateStr) {
-  const [y, m, d] = dateStr.split('-');
-  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  return `${d} ${months[Number(m) - 1]}. ${y}`;
+  if (!dateStr) return '';
+  const parts = String(dateStr).replace(/\//g, '-').slice(0, 10).split('-');
+  if (parts.length !== 3) return dateStr;
+  const [y, m, d] = parts;
+  return `${d}/${m}/${y}`;
 }
 
 function escHtml(str) {
