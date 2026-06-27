@@ -6,6 +6,11 @@ let chart = null;
 let editingId = null;
 let editingCategoryId = null;
 
+let sortCol = 'date';
+let sortDir = 'desc';
+const colFilters = { description: '', category: '', type: '' };
+let tableInitialized = false;
+
 function formatAmount(amount) {
   const currency = localStorage.getItem('currency') || 'USD';
   const locale = currency === 'ARS' ? 'es-AR' : 'en-US';
@@ -30,8 +35,15 @@ export async function initDashboard(user) {
   document.getElementById('btn-cancel').addEventListener('click', closeForm);
   document.getElementById('btn-categories').addEventListener('click', toggleCategoryPanel);
   document.getElementById('btn-close-categories').addEventListener('click', toggleCategoryPanel);
-  document.getElementById('filter-category').addEventListener('change', renderList);
-  document.getElementById('filter-type').addEventListener('change', renderList);
+
+  document.getElementById('filter-category').addEventListener('change', (e) => {
+    colFilters.category = e.target.value;
+    renderList();
+  });
+  document.getElementById('filter-type').addEventListener('change', (e) => {
+    colFilters.type = e.target.value;
+    renderList();
+  });
   document.getElementById('filter-month').addEventListener('change', renderChart);
   window.addEventListener('themechange', renderChart);
 
@@ -42,6 +54,15 @@ export async function initDashboard(user) {
     renderList();
     renderChart();
     updateSummary();
+  });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      tableInitialized = false;
+      renderList();
+    }, 250);
   });
 }
 
@@ -83,6 +104,8 @@ function refreshCategorySelects() {
     filterCat.appendChild(opt);
   });
   if (currentFilter) filterCat.value = currentFilter;
+
+  updateCategoryFilterOptions();
 }
 
 async function loadTransactions() {
@@ -101,20 +124,202 @@ function selectedCurrency() {
 }
 
 function getFiltered() {
-  const cat      = document.getElementById('filter-category').value;
-  const type     = document.getElementById('filter-type').value;
   const currency = selectedCurrency();
   return transactions.filter((t) => {
     if (t.currency !== currency) return false;
-    if (cat  && t.category !== cat)  return false;
-    if (type && t.type     !== type) return false;
+    if (colFilters.category && t.category !== colFilters.category) return false;
+    if (colFilters.type && t.type !== colFilters.type) return false;
+    if (colFilters.description && !t.description.toLowerCase().includes(colFilters.description.toLowerCase())) return false;
     return true;
   });
 }
 
+function getSortedFiltered() {
+  return [...getFiltered()].sort((a, b) => {
+    let va = a[sortCol];
+    let vb = b[sortCol];
+    if (sortCol === 'amount') { va = Number(va); vb = Number(vb); }
+    else { va = String(va); vb = String(vb); }
+    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+}
+
+// ─── Render dispatch ──────────────────────────────
+
 function renderList() {
   const list = document.getElementById('expense-list');
-  const filtered = getFiltered();
+  if (window.innerWidth >= 769) {
+    if (!tableInitialized && list.querySelector('.expense-item')) {
+      list.innerHTML = '';
+    }
+    renderTable();
+  } else {
+    if (tableInitialized) {
+      tableInitialized = false;
+      list.innerHTML = '';
+    }
+    renderCards();
+  }
+}
+
+// ─── Desktop Table View ───────────────────────────
+
+function buildTableShell() {
+  return `
+    <table class="tx-table">
+      <thead>
+        <tr class="tx-head">
+          <th class="sortable" data-col="date">Fecha <span class="sort-icon" data-col="date"></span></th>
+          <th class="sortable tx-col-desc" data-col="description">Descripción <span class="sort-icon" data-col="description"></span></th>
+          <th class="sortable" data-col="category">Categoría <span class="sort-icon" data-col="category"></span></th>
+          <th class="sortable" data-col="type">Tipo <span class="sort-icon" data-col="type"></span></th>
+          <th class="sortable tx-right" data-col="amount">Monto <span class="sort-icon" data-col="amount"></span></th>
+          <th class="tx-actions-head"></th>
+        </tr>
+        <tr class="tx-filter-row">
+          <td></td>
+          <td><input type="search" id="cf-description" placeholder="Buscar…" value="${escHtml(colFilters.description)}" /></td>
+          <td><select id="cf-category"><option value="">Todas</option></select></td>
+          <td>
+            <select id="cf-type">
+              <option value="">Todos</option>
+              <option value="expense"${colFilters.type === 'expense' ? ' selected' : ''}>Egreso</option>
+              <option value="income"${colFilters.type === 'income' ? ' selected' : ''}>Ingreso</option>
+            </select>
+          </td>
+          <td></td>
+          <td></td>
+        </tr>
+      </thead>
+      <tbody class="tx-tbody"></tbody>
+    </table>`;
+}
+
+function updateCategoryFilterOptions() {
+  const sel = document.getElementById('cf-category');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Todas</option>';
+  categories.forEach((cat) => {
+    const opt = document.createElement('option');
+    opt.value = cat.name;
+    opt.textContent = cat.name;
+    if (cat.name === colFilters.category) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function bindTableHeaderEvents() {
+  const list = document.getElementById('expense-list');
+
+  list.querySelectorAll('.tx-head th.sortable').forEach((th) => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortCol = col;
+        sortDir = col === 'amount' ? 'desc' : 'asc';
+      }
+      updateSortIndicators();
+      renderTableBody();
+    });
+  });
+
+  list.querySelector('#cf-description').addEventListener('input', (e) => {
+    colFilters.description = e.target.value;
+    renderTableBody();
+  });
+
+  list.querySelector('#cf-category').addEventListener('change', (e) => {
+    colFilters.category = e.target.value;
+    document.getElementById('filter-category').value = e.target.value;
+    renderTableBody();
+  });
+
+  list.querySelector('#cf-type').addEventListener('change', (e) => {
+    colFilters.type = e.target.value;
+    document.getElementById('filter-type').value = e.target.value;
+    renderTableBody();
+  });
+}
+
+function updateSortIndicators() {
+  document.querySelectorAll('.sort-icon').forEach((icon) => {
+    const col = icon.dataset.col;
+    icon.className = 'sort-icon' + (sortCol === col ? ` ${sortDir}` : '');
+  });
+  document.querySelectorAll('.tx-head th').forEach((th) => {
+    th.classList.toggle('sort-active', th.dataset.col === sortCol);
+  });
+}
+
+function renderTable() {
+  const list = document.getElementById('expense-list');
+  if (!tableInitialized) {
+    list.innerHTML = buildTableShell();
+    bindTableHeaderEvents();
+    tableInitialized = true;
+  }
+  updateCategoryFilterOptions();
+  updateSortIndicators();
+  renderTableBody();
+}
+
+function renderTableBody() {
+  const tbody = document.querySelector('.tx-tbody');
+  if (!tbody) return;
+
+  const filtered = getSortedFiltered();
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="tx-empty">Sin movimientos para los filtros aplicados.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((t) => {
+    const isIncome = t.type === 'income';
+    const color = categoryColor(t.category);
+    return `
+      <tr data-id="${t.id}">
+        <td class="tx-date">${formatDate(t.date)}</td>
+        <td class="tx-desc">${escHtml(t.description)}</td>
+        <td><span class="expense-category-badge" style="background:${color}22;color:${color}">${escHtml(t.category)}</span></td>
+        <td><span class="tx-type-pill ${isIncome ? 'tx-type--income' : 'tx-type--expense'}">${isIncome ? 'Ingreso' : 'Egreso'}</span></td>
+        <td class="tx-right">
+          <span class="tx-amount ${isIncome ? 'amount--income' : 'amount--expense'}">${isIncome ? '+' : '-'}${formatAmount(t.amount)}</span>
+        </td>
+        <td class="tx-actions-cell">
+          <div class="tx-actions">
+            <button class="btn-icon btn-edit" aria-label="Edit" data-id="${t.id}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button class="btn-icon btn-delete" aria-label="Delete" data-id="${t.id}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+              </svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.btn-edit').forEach((btn) => {
+    btn.addEventListener('click', () => openEditForm(Number(btn.dataset.id)));
+  });
+  tbody.querySelectorAll('.btn-delete').forEach((btn) => {
+    btn.addEventListener('click', () => deleteTransaction(Number(btn.dataset.id)));
+  });
+}
+
+// ─── Mobile Card View ─────────────────────────────
+
+function renderCards() {
+  const list = document.getElementById('expense-list');
+  const filtered = getSortedFiltered();
 
   if (filtered.length === 0) {
     list.innerHTML = `
@@ -166,6 +371,27 @@ function renderList() {
     btn.addEventListener('click', () => deleteTransaction(Number(btn.dataset.id)));
   });
 }
+
+// ─── Summary ──────────────────────────────────────
+
+function updateSummary() {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthTx = transactions.filter((t) => t.date.startsWith(currentMonth) && t.currency === selectedCurrency());
+
+  const income = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expenses = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const balance = income - expenses;
+
+  document.getElementById('total-income').textContent = formatAmount(income);
+  document.getElementById('total-expenses').textContent = formatAmount(expenses);
+
+  const balanceEl = document.getElementById('total-balance');
+  balanceEl.textContent = (balance >= 0 ? '+' : '') + formatAmount(Math.abs(balance));
+  balanceEl.className = balance >= 0 ? 'amount--income' : 'amount--expense';
+}
+
+// ─── Chart ────────────────────────────────────────
 
 function renderChart() {
   const monthFilter = document.getElementById('filter-month').value;
@@ -222,22 +448,7 @@ function renderChart() {
   });
 }
 
-function updateSummary() {
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthTx = transactions.filter((t) => t.date.startsWith(currentMonth) && t.currency === selectedCurrency());
-
-  const income = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expenses = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const balance = income - expenses;
-
-  document.getElementById('total-income').textContent = formatAmount(income);
-  document.getElementById('total-expenses').textContent = formatAmount(expenses);
-
-  const balanceEl = document.getElementById('total-balance');
-  balanceEl.textContent = (balance >= 0 ? '+' : '') + formatAmount(Math.abs(balance));
-  balanceEl.className = balance >= 0 ? 'amount--income' : 'amount--expense';
-}
+// ─── Form ─────────────────────────────────────────
 
 function setupTypeToggle() {
   const btns = document.querySelectorAll('.type-btn');
@@ -345,21 +556,6 @@ async function deleteTransaction(id) {
   }
 }
 
-function categoryColor(name) {
-  const cat = categories.find((c) => c.name === name);
-  return cat ? cat.color : '#94a3b8';
-}
-
-function formatDate(dateStr) {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
-  });
-}
-
-function escHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 // ─── Category panel ───────────────────────────────
 
 function toggleCategoryPanel() {
@@ -464,4 +660,21 @@ async function deleteCategory(id) {
     errorEl.textContent = err.message;
     errorEl.hidden = false;
   }
+}
+
+// ─── Helpers ──────────────────────────────────────
+
+function categoryColor(name) {
+  const cat = categories.find((c) => c.name === name);
+  return cat ? cat.color : '#94a3b8';
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-AR', {
+    year: 'numeric', month: 'short', day: 'numeric',
+  });
+}
+
+function escHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
