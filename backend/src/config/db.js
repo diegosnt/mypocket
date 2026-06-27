@@ -28,6 +28,4 @@ async function initDb() {
   ]);
 }
 
-initDb().catch((err) => console.error('DB init failed:', err));
-
-module.exports = db;
+module.exports = { db, initDb };
