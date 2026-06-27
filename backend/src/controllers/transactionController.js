@@ -95,7 +95,7 @@ async function remove(req, res) {
 
 function validate({ type, amount, description, category, date }) {
   if (!type || !VALID_TYPES.includes(type)) {
-    return 'El tipo debe ser gasto o ingreso';
+    return 'El tipo debe ser egreso o ingreso';
   }
   if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
     return 'El monto debe ser un número positivo';

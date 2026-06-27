@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="MyPocket — Seguimiento de gastos personales" />
+  <meta name="description" content="MyPocket — Seguimiento de egresos e ingresos personales" />
   <title>MyPocket</title>
   <link rel="stylesheet" href="css/style.css" />
   <script>
@@ -91,7 +91,7 @@
           <strong id="total-income" class="amount--income">$0.00</strong>
         </div>
         <div class="summary-card">
-          <p>Gastos del mes</p>
+          <p>Egresos del mes</p>
           <strong id="total-expenses" class="amount--expense">$0.00</strong>
         </div>
         <div class="summary-card">
@@ -105,7 +105,7 @@
         <h2>Movimientos</h2>
         <select id="filter-type" aria-label="Filtrar por tipo">
           <option value="">Todos</option>
-          <option value="expense">Gastos</option>
+          <option value="expense">Egresos</option>
           <option value="income">Ingresos</option>
         </select>
         <select id="filter-category" aria-label="Filtrar por categoría">
@@ -127,7 +127,7 @@
           <div class="type-toggle" role="group" aria-label="Tipo de movimiento">
             <button type="button" class="type-btn active" data-type="expense">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Gasto
+              Egreso
             </button>
             <button type="button" class="type-btn" data-type="income">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -168,7 +168,7 @@
       <!-- Gráfico -->
       <aside class="chart-panel">
         <h3>
-          Gastos por categoría —
+          Egresos por categoría —
           <input id="filter-month" type="month" style="border:none;background:none;font-size:.85rem;color:var(--color-text-muted);cursor:pointer;" />
         </h3>
         <canvas id="expense-chart"></canvas>

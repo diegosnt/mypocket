@@ -174,7 +174,7 @@ function renderChart() {
   if (labels.length === 0) {
     canvas.parentElement.innerHTML = `
       <canvas id="expense-chart"></canvas>
-      <p class="chart-empty">Sin gastos para ${targetMonth}</p>`;
+      <p class="chart-empty">Sin egresos para ${targetMonth}</p>`;
     return;
   }
 
