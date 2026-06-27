@@ -123,6 +123,12 @@
           </svg>
           Orígenes
         </button>
+        <button id="btn-chart" class="btn btn-secondary" style="width:auto;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 21H4a1 1 0 0 1-1-1V3"/><path d="M7 14l4-4 4 4 4-4"/>
+          </svg>
+          Gráfico
+        </button>
         <button id="btn-add-expense" class="btn btn-primary" style="width:auto;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -223,18 +229,27 @@
         <div id="expense-list"></div>
       </div>
 
-      <!-- Gráfico -->
-      <aside class="chart-panel">
-        <h3>
-          Egresos por categoría —
-          <input id="filter-month" type="month" style="border:none;background:none;font-size:.85rem;color:var(--color-text-muted);cursor:pointer;" />
-        </h3>
-        <canvas id="expense-chart"></canvas>
-      </aside>
-
     </main>
   </div>
 </section>
+
+<!-- Modal gráfico -->
+<div id="chart-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Egresos por categoría</h3>
+      <div class="modal-header-right">
+        <input id="filter-month" type="month" class="month-input" />
+        <button id="btn-close-chart" class="btn-icon" aria-label="Cerrar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <canvas id="expense-chart"></canvas>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script type="module">

@@ -44,6 +44,14 @@ export async function initDashboard(user) {
   document.getElementById('btn-close-categories').addEventListener('click', toggleCategoryPanel);
   document.getElementById('btn-origins').addEventListener('click', toggleOriginsPanel);
   document.getElementById('btn-close-origins').addEventListener('click', toggleOriginsPanel);
+  document.getElementById('btn-chart').addEventListener('click', openChartModal);
+  document.getElementById('btn-close-chart').addEventListener('click', closeChartModal);
+  document.getElementById('chart-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeChartModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeChartModal();
+  });
 
   document.getElementById('filter-category').addEventListener('change', (e) => {
     colFilters.category = e.target.value;
@@ -54,12 +62,14 @@ export async function initDashboard(user) {
     renderList();
   });
   document.getElementById('filter-month').addEventListener('change', renderChart);
-  window.addEventListener('themechange', renderChart);
+  window.addEventListener('themechange', () => {
+    if (!document.getElementById('chart-modal').hidden) renderChart();
+  });
 
   currencySelect.addEventListener('change', () => {
     localStorage.setItem('currency', currencySelect.value);
     renderList();
-    renderChart();
+    if (!document.getElementById('chart-modal').hidden) renderChart();
     updateSummary();
   });
 
@@ -148,7 +158,6 @@ async function loadTransactions() {
   try {
     transactions = await api.transactions.getAll();
     renderList();
-    renderChart();
     updateSummary();
   } catch (err) {
     console.error('Failed to load transactions:', err);
@@ -459,6 +468,23 @@ function updateSummary() {
   balanceEl.className = balance >= 0 ? 'amount--income' : 'amount--expense';
 }
 
+// ─── Chart Modal ─────────────────────────────────
+
+function openChartModal() {
+  const modal = document.getElementById('chart-modal');
+  modal.hidden = false;
+  const now = new Date();
+  const input = document.getElementById('filter-month');
+  if (!input.value) {
+    input.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  renderChart();
+}
+
+function closeChartModal() {
+  document.getElementById('chart-modal').hidden = true;
+}
+
 // ─── Chart ────────────────────────────────────────
 
 function renderChart() {
@@ -559,7 +585,6 @@ function setupForm() {
       }
       closeForm();
       renderList();
-      renderChart();
       updateSummary();
     } catch (err) {
       errorEl.textContent = err.message;
@@ -621,7 +646,6 @@ async function deleteTransaction(id) {
     await api.transactions.delete(id);
     transactions = transactions.filter((t) => t.id !== id);
     renderList();
-    renderChart();
     updateSummary();
   } catch (err) {
     alert(err.message);
@@ -697,7 +721,6 @@ function setupCategoryPanel() {
       refreshCategorySelects();
       renderCategoryList();
       renderList();
-      renderChart();
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.hidden = false;
@@ -845,10 +868,7 @@ function categoryColor(name) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  const parts = String(dateStr).replace(/\//g, '-').slice(0, 10).split('-');
-  if (parts.length !== 3) return dateStr;
-  const [y, m, d] = parts;
-  return `${d}/${m}/${y}`;
+  return String(dateStr).slice(0, 10).replace(/-/g, '/');
 }
 
 function escHtml(str) {
