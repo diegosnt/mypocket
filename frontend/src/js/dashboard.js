@@ -19,7 +19,7 @@ let sortDir = 'desc';
 const colFilters = { description: '', category: '', type: '', origin: '' };
 let tableInitialized = false;
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 10;
 let currentPage = 1;
 
 function formatAmount(amount) {
