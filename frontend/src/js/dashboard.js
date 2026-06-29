@@ -19,6 +19,9 @@ let sortDir = 'desc';
 const colFilters = { description: '', category: '', type: '', origin: '' };
 let tableInitialized = false;
 
+const PAGE_SIZE = 25;
+let currentPage = 1;
+
 function formatAmount(amount) {
   const currency = localStorage.getItem('currency') || 'ARS';
   const locale = currency === 'ARS' ? 'es-AR' : 'en-US';
@@ -97,10 +100,12 @@ export async function initDashboard(user) {
 
   document.getElementById('filter-category').addEventListener('change', (e) => {
     colFilters.category = e.target.value;
+    currentPage = 1;
     renderList();
   });
   document.getElementById('filter-type').addEventListener('change', (e) => {
     colFilters.type = e.target.value;
+    currentPage = 1;
     renderList();
   });
   document.getElementById('filter-month').addEventListener('change', renderChart);
@@ -110,6 +115,7 @@ export async function initDashboard(user) {
 
   currencySelect.addEventListener('change', () => {
     localStorage.setItem('currency', currencySelect.value);
+    currentPage = 1;
     renderList();
     if (!document.getElementById('chart-modal').hidden) renderChart();
     updateSummary();
@@ -250,6 +256,7 @@ function refreshPaymentSelect() {
 async function loadTransactions() {
   try {
     transactions = await api.transactions.getAll();
+    currentPage = 1;
     renderList();
     updateSummary();
   } catch (err) {
@@ -282,6 +289,16 @@ function getSortedFiltered() {
     const cmp = va < vb ? -1 : va > vb ? 1 : 0;
     return sortDir === 'asc' ? cmp : -cmp;
   });
+}
+
+function getPagedItems() {
+  const all = getSortedFiltered();
+  const start = (currentPage - 1) * PAGE_SIZE;
+  return all.slice(start, start + PAGE_SIZE);
+}
+
+function totalPages() {
+  return Math.max(1, Math.ceil(getSortedFiltered().length / PAGE_SIZE));
 }
 
 // ─── Render dispatch ──────────────────────────────
@@ -384,6 +401,7 @@ function bindTableHeaderEvents() {
         sortCol = col;
         sortDir = col === 'amount' ? 'desc' : 'asc';
       }
+      currentPage = 1;
       updateSortIndicators();
       renderTableBody();
     });
@@ -391,23 +409,27 @@ function bindTableHeaderEvents() {
 
   list.querySelector('#cf-description').addEventListener('input', (e) => {
     colFilters.description = e.target.value;
+    currentPage = 1;
     renderTableBody();
   });
 
   list.querySelector('#cf-category').addEventListener('change', (e) => {
     colFilters.category = e.target.value;
     document.getElementById('filter-category').value = e.target.value;
+    currentPage = 1;
     renderTableBody();
   });
 
   list.querySelector('#cf-origin').addEventListener('change', (e) => {
     colFilters.origin = e.target.value;
+    currentPage = 1;
     renderTableBody();
   });
 
   list.querySelector('#cf-type').addEventListener('change', (e) => {
     colFilters.type = e.target.value;
     document.getElementById('filter-type').value = e.target.value;
+    currentPage = 1;
     renderTableBody();
   });
 }
@@ -439,9 +461,10 @@ function renderTableBody() {
   const tbody = document.querySelector('.tx-tbody');
   if (!tbody) return;
 
-  const filtered = getSortedFiltered();
-  if (filtered.length === 0) {
+  const filtered = getPagedItems();
+  if (getSortedFiltered().length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" class="tx-empty">Sin movimientos para los filtros aplicados.</td></tr>`;
+    renderPagination();
     return;
   }
 
@@ -492,15 +515,16 @@ function renderTableBody() {
   tbody.querySelectorAll('.btn-delete').forEach((btn) => {
     btn.addEventListener('click', () => deleteTransaction(Number(btn.dataset.id)));
   });
+  renderPagination();
 }
 
 // ─── Mobile Card View ─────────────────────────────
 
 function renderCards() {
   const list = document.getElementById('expense-list');
-  const filtered = getSortedFiltered();
+  const filtered = getPagedItems();
 
-  if (filtered.length === 0) {
+  if (getSortedFiltered().length === 0) {
     list.innerHTML = `
       <div class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -508,6 +532,7 @@ function renderCards() {
         </svg>
         <p>Sin movimientos. ¡Agregá el primero!</p>
       </div>`;
+    renderPagination();
     return;
   }
 
@@ -558,6 +583,7 @@ function renderCards() {
   list.querySelectorAll('.btn-delete').forEach((btn) => {
     btn.addEventListener('click', () => deleteTransaction(Number(btn.dataset.id)));
   });
+  renderPagination();
 }
 
 // ─── Summary ──────────────────────────────────────
@@ -738,6 +764,7 @@ function setupForm() {
         transactions.unshift(created);
       }
       closeForm();
+      currentPage = 1;
       renderList();
       updateSummary();
     } catch (err) {
@@ -825,6 +852,7 @@ async function deleteTransaction(id) {
   try {
     await api.transactions.delete(id);
     transactions = transactions.filter((t) => t.id !== id);
+    currentPage = 1;
     renderList();
     updateSummary();
   } catch (err) {
@@ -1320,6 +1348,7 @@ async function confirmImport() {
     closeImportModal();
     const fresh = await api.transactions.getAll();
     transactions = fresh;
+    currentPage = 1;
     renderList();
     updateSummary();
     const el = document.createElement('div');
@@ -1430,6 +1459,7 @@ async function confirmPayCard() {
     closePayCardModal();
     const fresh = await api.transactions.getAll();
     transactions = fresh;
+    currentPage = 1;
     renderList();
     updateSummary();
     if (result.settled_count > 0) {
@@ -1445,6 +1475,65 @@ async function confirmPayCard() {
   } finally {
     btn.disabled = false;
   }
+}
+
+// ─── Pagination ───────────────────────────────────
+
+function renderPagination() {
+  const container = document.getElementById('pagination');
+  if (!container) return;
+  const total = totalPages();
+  const allCount = getSortedFiltered().length;
+
+  if (allCount <= PAGE_SIZE) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentPage * PAGE_SIZE, allCount);
+
+  const pages = [];
+  const delta = 2;
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= currentPage - delta && i <= currentPage + delta)) {
+      pages.push(i);
+    }
+  }
+  const withEllipsis = [];
+  let prev = null;
+  for (const p of pages) {
+    if (prev !== null && p - prev > 1) withEllipsis.push('…');
+    withEllipsis.push(p);
+    prev = p;
+  }
+
+  container.innerHTML = `
+    <div class="pagination">
+      <span class="pagination-info">${start}–${end} de ${allCount}</span>
+      <div class="pagination-controls">
+        <button class="btn-page" id="pg-prev" ${currentPage === 1 ? 'disabled' : ''}>‹</button>
+        ${withEllipsis.map((p) =>
+          p === '…'
+            ? `<span class="pg-ellipsis">…</span>`
+            : `<button class="btn-page${p === currentPage ? ' btn-page--active' : ''}" data-page="${p}">${p}</button>`
+        ).join('')}
+        <button class="btn-page" id="pg-next" ${currentPage === total ? 'disabled' : ''}>›</button>
+      </div>
+    </div>`;
+
+  container.querySelector('#pg-prev')?.addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; renderList(); }
+  });
+  container.querySelector('#pg-next')?.addEventListener('click', () => {
+    if (currentPage < total) { currentPage++; renderList(); }
+  });
+  container.querySelectorAll('.btn-page[data-page]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentPage = Number(btn.dataset.page);
+      renderList();
+    });
+  });
 }
 
 // ─── Helpers ──────────────────────────────────────
