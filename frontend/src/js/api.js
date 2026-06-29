@@ -62,5 +62,6 @@ export const api = {
     delete: (id) =>
       request(`/api/transactions/${id}`, { method: 'DELETE' }),
     import: (body) => request('/api/transactions/import', { method: 'POST', body: JSON.stringify(body) }),
+    payCard: (body) => request('/api/transactions/pay-card', { method: 'POST', body: JSON.stringify(body) }),
   },
 };

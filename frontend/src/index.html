@@ -311,6 +311,43 @@
   </div>
 </div>
 
+<!-- Modal: pagar TC -->
+<div id="pay-card-modal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Pagar tarjeta de crédito</h3>
+      <button class="btn-icon" id="btn-close-pay-card" aria-label="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <p id="error-pay-card" class="alert-error" hidden></p>
+    <div class="form-grid" style="margin-bottom:1rem;">
+      <div class="form-group">
+        <label>Tarjeta</label>
+        <input id="pay-card-name" type="text" readonly style="background:var(--color-bg);cursor:default;" />
+        <input id="pay-card-id" type="hidden" />
+      </div>
+      <div class="form-group">
+        <label for="pay-card-currency">Moneda</label>
+        <select id="pay-card-currency">
+          <option value="ARS">ARS $</option>
+          <option value="USD">USD $</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="pay-card-amount">Monto a pagar</label>
+        <input id="pay-card-amount" type="number" step="0.01" min="0.01" placeholder="0.00" />
+      </div>
+    </div>
+    <div id="pay-card-preview" style="font-size:.875rem;color:var(--color-text-muted);margin-bottom:1rem;min-height:1.5rem;"></div>
+    <div class="form-actions">
+      <button id="btn-confirm-pay-card" class="btn btn-primary" style="width:auto;padding:.65rem 1.5rem;">Pagar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: categorías -->
 <div id="categories-modal" class="modal-overlay" hidden>
   <div class="modal-card">

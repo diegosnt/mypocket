@@ -202,6 +202,74 @@ async function importRows(req, res) {
   res.json({ imported, errors });
 }
 
+async function payCard(req, res) {
+  const { credit_card_id, amount, currency } = req.body;
+
+  if (!credit_card_id || !amount || !currency) {
+    return res.status(400).json({ error: 'Datos inválidos' });
+  }
+  if (!['ARS', 'USD'].includes(currency)) {
+    return res.status(400).json({ error: 'Moneda inválida' });
+  }
+  const amt = parseFloat(amount);
+  if (isNaN(amt) || amt <= 0) {
+    return res.status(400).json({ error: 'Monto inválido' });
+  }
+
+  try {
+    // validate card belongs to user
+    const cc = await db.execute({
+      sql: 'SELECT id FROM credit_cards WHERE id = ? AND user_id = ?',
+      args: [Number(credit_card_id), req.user.id],
+    });
+    if (cc.rows.length === 0) return res.status(400).json({ error: 'Tarjeta no válida' });
+
+    // get pending transactions for this card+currency, oldest first
+    const pending = await db.execute({
+      sql: `SELECT id, amount FROM transactions
+            WHERE user_id = ? AND credit_card_id = ? AND currency = ? AND status = 'pending'
+            ORDER BY date ASC, created_at ASC`,
+      args: [req.user.id, Number(credit_card_id), currency],
+    });
+
+    let remaining = amt;
+    const toSettle = [];
+    for (const row of pending.rows) {
+      const rowAmt = Number(row.amount);
+      if (rowAmt <= remaining + 0.001) {
+        toSettle.push(Number(row.id));
+        remaining -= rowAmt;
+      }
+    }
+
+    if (toSettle.length === 0) {
+      return res.json({
+        settled_count: 0,
+        settled_amount: 0,
+        remaining_pending: pending.rows.reduce((s, r) => s + Number(r.amount), 0),
+      });
+    }
+
+    // batch update
+    await db.batch(
+      toSettle.map((id) => ({
+        sql: `UPDATE transactions SET status = 'settled' WHERE id = ?`,
+        args: [id],
+      }))
+    );
+
+    const settledAmount = amt - remaining;
+    const remainingPending = pending.rows
+      .filter((r) => !toSettle.includes(Number(r.id)))
+      .reduce((s, r) => s + Number(r.amount), 0);
+
+    res.json({ settled_count: toSettle.length, settled_amount: settledAmount, remaining_pending: remainingPending });
+  } catch (err) {
+    console.error('payCard error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 function normalizeRow(row) {
   return {
     id: Number(row.id),
@@ -218,4 +286,4 @@ function normalizeRow(row) {
   };
 }
 
-module.exports = { getAll, create, update, remove, importRows };
+module.exports = { getAll, create, update, remove, importRows, payCard };

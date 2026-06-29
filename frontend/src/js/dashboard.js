@@ -12,6 +12,8 @@ let editingCreditCardId = null;
 
 let importParsedRows = [];
 
+let payCardTarget = { id: null, currency: 'ARS' };
+
 let sortCol = 'date';
 let sortDir = 'desc';
 const colFilters = { description: '', category: '', type: '', origin: '' };
@@ -57,6 +59,13 @@ export async function initDashboard(user) {
   document.getElementById('import-modal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeImportModal();
   });
+  document.getElementById('btn-close-pay-card').addEventListener('click', closePayCardModal);
+  document.getElementById('pay-card-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closePayCardModal();
+  });
+  document.getElementById('pay-card-currency').addEventListener('change', updatePayCardPreview);
+  document.getElementById('pay-card-amount').addEventListener('input', updatePayCardPreview);
+  document.getElementById('btn-confirm-pay-card').addEventListener('click', confirmPayCard);
   document.getElementById('btn-chart').addEventListener('click', openChartModal);
   document.getElementById('btn-close-chart').addEventListener('click', closeChartModal);
   document.getElementById('chart-modal').addEventListener('click', (e) => {
@@ -82,6 +91,7 @@ export async function initDashboard(user) {
       closeOriginsModal();
       closeCreditCardsModal();
       closeImportModal();
+      closePayCardModal();
     }
   });
 
@@ -596,9 +606,16 @@ function renderTCDebtSummary() {
         const parts = [];
         if (amounts.ARS) parts.push(new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }).format(amounts.ARS));
         if (amounts.USD) parts.push(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amounts.USD));
-        return `<div class="tc-debt-item"><span class="tc-debt-name">${escHtml(label)}</span><span class="tc-debt-amount">${parts.join(' · ')}</span></div>`;
+        return `<div class="tc-debt-item">
+  <span class="tc-debt-name">${escHtml(label)}</span>
+  <span class="tc-debt-amount">${parts.join(' · ')}</span>
+  <button class="btn btn-secondary tc-debt-pay-btn" style="padding:.25rem .75rem;font-size:.75rem;width:auto;" data-card-id="${cardId}">Pagar</button>
+</div>`;
       }).join('')}
     </div>`;
+  el.querySelectorAll('.tc-debt-pay-btn').forEach((btn) => {
+    btn.addEventListener('click', () => openPayCardModal(Number(btn.dataset.cardId)));
+  });
 }
 
 // ─── Chart Modal ─────────────────────────────────
@@ -1314,6 +1331,118 @@ async function confirmImport() {
     const errorEl = document.getElementById('error-import');
     errorEl.textContent = err.message;
     errorEl.hidden = false;
+    btn.disabled = false;
+  }
+}
+
+// ─── Pay card modal ───────────────────────────────
+
+function openPayCardModal(cardId) {
+  const cc = creditCards.find((c) => c.id === cardId);
+  if (!cc) return;
+
+  const pending = transactions.filter((t) => t.status === 'pending' && t.credit_card_id === cardId);
+  const hasARS = pending.some((t) => t.currency === 'ARS');
+  const hasUSD = pending.some((t) => t.currency === 'USD');
+  const defaultCurrency = hasARS ? 'ARS' : 'USD';
+
+  payCardTarget = { id: cardId, currency: defaultCurrency };
+
+  document.getElementById('pay-card-name').value = cc.bank ? `${cc.name} — ${cc.bank}` : cc.name;
+  document.getElementById('pay-card-id').value = cardId;
+  document.getElementById('pay-card-currency').value = defaultCurrency;
+  document.getElementById('error-pay-card').hidden = true;
+  document.getElementById('pay-card-preview').textContent = '';
+
+  // pre-fill amount with total pending for default currency
+  const total = pending.filter((t) => t.currency === defaultCurrency).reduce((s, t) => s + t.amount, 0);
+  document.getElementById('pay-card-amount').value = total > 0 ? total.toFixed(2) : '';
+
+  // hide currency options that have no pending
+  const sel = document.getElementById('pay-card-currency');
+  sel.querySelectorAll('option').forEach((opt) => {
+    opt.hidden = opt.value === 'ARS' ? !hasARS : !hasUSD;
+  });
+
+  document.getElementById('pay-card-modal').hidden = false;
+  updatePayCardPreview();
+}
+
+function closePayCardModal() {
+  document.getElementById('pay-card-modal').hidden = true;
+  payCardTarget = { id: null, currency: 'ARS' };
+}
+
+function updatePayCardPreview() {
+  const cardId = Number(document.getElementById('pay-card-id').value);
+  const currency = document.getElementById('pay-card-currency').value;
+  const amount = parseFloat(document.getElementById('pay-card-amount').value);
+  const preview = document.getElementById('pay-card-preview');
+
+  if (!cardId || isNaN(amount) || amount <= 0) {
+    preview.textContent = '';
+    return;
+  }
+
+  // simulate which transactions would be settled (oldest first)
+  const pending = transactions
+    .filter((t) => t.status === 'pending' && t.credit_card_id === cardId && t.currency === currency)
+    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+
+  let remaining = amount;
+  let count = 0;
+  let settledAmt = 0;
+  for (const t of pending) {
+    if (t.amount <= remaining + 0.001) {
+      count++;
+      settledAmt += t.amount;
+      remaining -= t.amount;
+    }
+  }
+
+  const totalPending = pending.reduce((s, t) => s + t.amount, 0);
+  const locale = currency === 'ARS' ? 'es-AR' : 'en-US';
+  const fmt = (n) => new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 2 }).format(n);
+
+  if (count === 0) {
+    preview.textContent = totalPending === 0
+      ? 'Sin compras pendientes en esta moneda.'
+      : `El monto ingresado no alcanza para liquidar ninguna compra (la más antigua es ${fmt(pending[0]?.amount ?? 0)}).`;
+  } else {
+    preview.textContent = `Se liquidarán ${count} compra${count !== 1 ? 's' : ''} por ${fmt(settledAmt)}${remaining > 0.01 ? ` · Saldo a favor no aplicado: ${fmt(remaining)}` : ''}.`;
+  }
+}
+
+async function confirmPayCard() {
+  const cardId = Number(document.getElementById('pay-card-id').value);
+  const currency = document.getElementById('pay-card-currency').value;
+  const amount = parseFloat(document.getElementById('pay-card-amount').value);
+  const errorEl = document.getElementById('error-pay-card');
+
+  if (!cardId || isNaN(amount) || amount <= 0) return;
+
+  const btn = document.getElementById('btn-confirm-pay-card');
+  btn.disabled = true;
+  errorEl.hidden = true;
+
+  try {
+    const result = await api.transactions.payCard({ credit_card_id: cardId, amount, currency });
+    closePayCardModal();
+    const fresh = await api.transactions.getAll();
+    transactions = fresh;
+    renderList();
+    updateSummary();
+    if (result.settled_count > 0) {
+      const el = document.createElement('div');
+      el.className = 'import-toast';
+      el.textContent = `✓ ${result.settled_count} compra${result.settled_count !== 1 ? 's' : ''} liquidada${result.settled_count !== 1 ? 's' : ''}`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.hidden = false;
+  } finally {
     btn.disabled = false;
   }
 }
