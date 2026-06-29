@@ -10,6 +10,8 @@ let editingCategoryId = null;
 let editingOriginId = null;
 let editingCreditCardId = null;
 
+let importParsedRows = [];
+
 let sortCol = 'date';
 let sortDir = 'desc';
 const colFilters = { description: '', category: '', type: '', origin: '' };
@@ -50,6 +52,11 @@ export async function initDashboard(user) {
   document.getElementById('btn-close-origins').addEventListener('click', closeOriginsModal);
   document.getElementById('btn-credit-cards').addEventListener('click', openCreditCardsModal);
   document.getElementById('btn-close-credit-cards').addEventListener('click', closeCreditCardsModal);
+  document.getElementById('btn-import').addEventListener('click', openImportModal);
+  document.getElementById('btn-close-import').addEventListener('click', closeImportModal);
+  document.getElementById('import-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeImportModal();
+  });
   document.getElementById('btn-chart').addEventListener('click', openChartModal);
   document.getElementById('btn-close-chart').addEventListener('click', closeChartModal);
   document.getElementById('chart-modal').addEventListener('click', (e) => {
@@ -74,6 +81,7 @@ export async function initDashboard(user) {
       closeCategoriesModal();
       closeOriginsModal();
       closeCreditCardsModal();
+      closeImportModal();
     }
   });
 
@@ -96,6 +104,26 @@ export async function initDashboard(user) {
     if (!document.getElementById('chart-modal').hidden) renderChart();
     updateSummary();
   });
+
+  document.getElementById('import-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const { rows } = parseCSV(ev.target.result);
+      importParsedRows = rows;
+      renderImportPreview(rows);
+    };
+    reader.readAsText(file, 'UTF-8');
+  });
+
+  document.getElementById('import-card').addEventListener('change', () => {
+    const valid = importParsedRows.filter((r) => r.errors.length === 0);
+    document.getElementById('btn-confirm-import').disabled =
+      valid.length === 0 || !document.getElementById('import-card').value;
+  });
+
+  document.getElementById('btn-confirm-import').addEventListener('click', confirmImport);
 
   let resizeTimer;
   window.addEventListener('resize', () => {
@@ -1120,6 +1148,173 @@ async function deleteCreditCard(id) {
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.hidden = false;
+  }
+}
+
+// ─── Import modal ─────────────────────────────────
+
+function openImportModal() {
+  importParsedRows = [];
+  document.getElementById('import-preview').hidden = true;
+  document.getElementById('import-preview-body').innerHTML = '';
+  document.getElementById('import-summary').textContent = '';
+  document.getElementById('btn-confirm-import').disabled = true;
+  document.getElementById('error-import').hidden = true;
+  document.getElementById('import-file').value = '';
+
+  const sel = document.getElementById('import-card');
+  sel.innerHTML = creditCards.length === 0
+    ? '<option value="">Sin tarjetas cargadas</option>'
+    : creditCards.map((cc) => `<option value="${cc.id}">${escHtml(cc.bank ? cc.name + ' — ' + cc.bank : cc.name)}</option>`).join('');
+
+  document.getElementById('import-modal').hidden = false;
+}
+
+function closeImportModal() {
+  document.getElementById('import-modal').hidden = true;
+  importParsedRows = [];
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return { headers: [], rows: [] };
+
+  const parseRow = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; }
+      else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+      else { current += ch; }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = parseRow(lines[0]).map((h) => h.toLowerCase().replace(/[^a-záéíóúñ]/gi, ''));
+  const idx = (name) => headers.indexOf(name);
+
+  const fechaIdx = idx('fecha') !== -1 ? idx('fecha') : idx('date');
+  const descIdx = idx('descripcion') !== -1 ? idx('descripcion') : idx('description');
+  const montoIdx = idx('monto') !== -1 ? idx('monto') : idx('amount') !== -1 ? idx('amount') : idx('importe');
+  const monedaIdx = idx('moneda') !== -1 ? idx('moneda') : idx('currency');
+  const catIdx = idx('categoria') !== -1 ? idx('categoria') : idx('category');
+
+  const parseMonto = (str) => {
+    if (!str) return NaN;
+    const s = String(str).trim().replace(/[$ ]/g, '');
+    if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s)) {
+      return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    }
+    return parseFloat(s.replace(',', '.'));
+  };
+
+  const parseFecha = (str) => {
+    if (!str) return null;
+    const s = String(str).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    return null;
+  };
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseRow(lines[i]);
+    const fecha = parseFecha(fechaIdx !== -1 ? cols[fechaIdx] : null);
+    const descripcion = descIdx !== -1 ? cols[descIdx] : '';
+    const rawMonto = montoIdx !== -1 ? cols[montoIdx] : '';
+    const monto = parseMonto(rawMonto);
+    const moneda = monedaIdx !== -1 && cols[monedaIdx] ? cols[monedaIdx].trim().toUpperCase() : 'ARS';
+    const categoria = catIdx !== -1 && cols[catIdx] ? cols[catIdx].trim() : 'Otros';
+
+    const errors = [];
+    if (!fecha) errors.push('Fecha inválida');
+    if (isNaN(monto) || monto <= 0) errors.push('Monto inválido');
+    if (!descripcion.trim()) errors.push('Sin descripción');
+    if (!['ARS', 'USD'].includes(moneda)) errors.push('Moneda inválida');
+
+    rows.push({ fecha, descripcion, monto: isNaN(monto) ? 0 : monto, moneda, categoria, errors, rawMonto });
+  }
+
+  return { rows };
+}
+
+function renderImportPreview(rows) {
+  const preview = document.getElementById('import-preview');
+  const tbody = document.getElementById('import-preview-body');
+  const summary = document.getElementById('import-summary');
+  const btn = document.getElementById('btn-confirm-import');
+
+  if (rows.length === 0) {
+    preview.hidden = true;
+    btn.disabled = true;
+    return;
+  }
+
+  const valid = rows.filter((r) => r.errors.length === 0);
+  const invalid = rows.filter((r) => r.errors.length > 0);
+
+  summary.textContent = `${valid.length} fila${valid.length !== 1 ? 's' : ''} válida${valid.length !== 1 ? 's' : ''}${invalid.length > 0 ? ` · ${invalid.length} con error` : ''}`;
+  btn.textContent = `Importar ${valid.length} movimiento${valid.length !== 1 ? 's' : ''}`;
+  btn.disabled = valid.length === 0 || !document.getElementById('import-card').value;
+
+  tbody.innerHTML = rows.map((r, i) => {
+    const hasError = r.errors.length > 0;
+    const cat = categories.find((c) => c.name === r.categoria);
+    const finalCat = cat ? r.categoria : `${escHtml(r.categoria)} → Otros`;
+    return `<tr class="${hasError ? 'import-row--error' : ''}">
+      <td>${i + 1}</td>
+      <td>${escHtml(r.fecha || '—')}</td>
+      <td>${escHtml(r.descripcion || '—')}${hasError ? `<br><span class="import-error-msg">${escHtml(r.errors.join(', '))}</span>` : ''}</td>
+      <td>${hasError && isNaN(r.monto) ? escHtml(r.rawMonto || '—') : formatAmount(r.monto)}</td>
+      <td>${escHtml(r.moneda)}</td>
+      <td>${escHtml(finalCat)}</td>
+    </tr>`;
+  }).join('');
+
+  preview.hidden = false;
+}
+
+async function confirmImport() {
+  const cardId = Number(document.getElementById('import-card').value);
+  const valid = importParsedRows.filter((r) => r.errors.length === 0);
+  if (!cardId || valid.length === 0) return;
+
+  const btn = document.getElementById('btn-confirm-import');
+  btn.disabled = true;
+  document.getElementById('error-import').hidden = true;
+
+  const rows = valid.map((r) => {
+    const cat = categories.find((c) => c.name === r.categoria);
+    return {
+      fecha: r.fecha,
+      descripcion: r.descripcion,
+      monto: r.monto,
+      moneda: r.moneda,
+      categoria: cat ? r.categoria : 'Otros',
+    };
+  });
+
+  try {
+    const result = await api.transactions.import({ credit_card_id: cardId, rows });
+    closeImportModal();
+    const fresh = await api.transactions.getAll();
+    transactions = fresh;
+    renderList();
+    updateSummary();
+    const el = document.createElement('div');
+    el.className = 'import-toast';
+    el.textContent = `✓ ${result.imported} movimiento${result.imported !== 1 ? 's' : ''} importado${result.imported !== 1 ? 's' : ''}`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  } catch (err) {
+    const errorEl = document.getElementById('error-import');
+    errorEl.textContent = err.message;
+    errorEl.hidden = false;
+    btn.disabled = false;
   }
 }
 

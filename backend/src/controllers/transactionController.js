@@ -155,6 +155,53 @@ async function validate({ type, amount, description, category, date, currency, o
   return null;
 }
 
+async function importRows(req, res) {
+  const { credit_card_id, rows } = req.body;
+  if (!credit_card_id || !Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ error: 'Datos inválidos' });
+  }
+
+  const cc = await db.execute({
+    sql: 'SELECT id FROM credit_cards WHERE id = ? AND user_id = ?',
+    args: [Number(credit_card_id), req.user.id],
+  });
+  if (cc.rows.length === 0) return res.status(400).json({ error: 'Tarjeta no válida' });
+
+  let imported = 0;
+  const errors = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const { fecha, descripcion, monto, moneda = 'ARS', categoria = 'Otros' } = rows[i];
+    if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      errors.push({ row: i + 1, message: 'Fecha inválida' }); continue;
+    }
+    const amt = parseFloat(monto);
+    if (isNaN(amt) || amt <= 0) {
+      errors.push({ row: i + 1, message: 'Monto inválido' }); continue;
+    }
+    if (!descripcion || String(descripcion).trim().length === 0) {
+      errors.push({ row: i + 1, message: 'Descripción vacía' }); continue;
+    }
+    if (!['ARS', 'USD'].includes(moneda)) {
+      errors.push({ row: i + 1, message: 'Moneda inválida (ARS o USD)' }); continue;
+    }
+    const cat = await db.execute({ sql: 'SELECT id FROM categories WHERE name = ?', args: [categoria] });
+    const finalCategory = cat.rows.length > 0 ? categoria : 'Otros';
+
+    try {
+      await db.execute({
+        sql: 'INSERT INTO transactions (user_id, type, amount, description, category, date, currency, origin, credit_card_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        args: [req.user.id, 'expense', amt, String(descripcion).trim().slice(0, 200), finalCategory, fecha, moneda, '', Number(credit_card_id), 'pending'],
+      });
+      imported++;
+    } catch (err) {
+      errors.push({ row: i + 1, message: 'Error al insertar' });
+    }
+  }
+
+  res.json({ imported, errors });
+}
+
 function normalizeRow(row) {
   return {
     id: Number(row.id),
@@ -171,4 +218,4 @@ function normalizeRow(row) {
   };
 }
 
-module.exports = { getAll, create, update, remove };
+module.exports = { getAll, create, update, remove, importRows };

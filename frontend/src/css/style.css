@@ -730,3 +730,30 @@ input[type="color"] {
   margin-left: .35rem;
   vertical-align: middle;
 }
+
+/* Import modal */
+.import-row--error td { background: #ef444410; }
+.import-error-msg { font-size: .75rem; color: #ef4444; }
+.import-preview-table { font-size: .8rem; }
+.import-preview-table th,
+.import-preview-table td { padding: .35rem .5rem; }
+
+/* Import toast */
+.import-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-primary, #6366f1);
+  color: #fff;
+  padding: .6rem 1.25rem;
+  border-radius: .5rem;
+  font-size: .875rem;
+  font-weight: 500;
+  z-index: 9999;
+  animation: toast-in .2s ease;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(.5rem); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
