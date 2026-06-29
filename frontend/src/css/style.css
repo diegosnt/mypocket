@@ -301,9 +301,7 @@ input:focus, select:focus {
   background: var(--color-surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  overflow-x: hidden;
-  overflow-y: auto;
-  max-height: 65vh;
+  overflow-x: auto;
 }
 
 #expense-list {
