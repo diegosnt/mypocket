@@ -28,6 +28,14 @@ const SEED_ORIGINS = [
 
 async function initDb() {
   await db.batch([
+    `ALTER TABLE transactions ADD COLUMN credit_card_id INTEGER REFERENCES credit_cards(id) ON DELETE SET NULL`,
+  ]).catch(() => {});
+
+  await db.batch([
+    `ALTER TABLE transactions ADD COLUMN status TEXT NOT NULL DEFAULT 'settled'`,
+  ]).catch(() => {});
+
+  await db.batch([
     `ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'ARS'`,
   ]).catch(() => {});
 
@@ -65,6 +73,14 @@ async function initDb() {
       description TEXT NOT NULL,
       category TEXT NOT NULL,
       date TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+    `CREATE TABLE IF NOT EXISTS credit_cards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      bank TEXT NOT NULL DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`,

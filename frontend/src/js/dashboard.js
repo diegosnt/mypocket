@@ -3,10 +3,12 @@ import { api } from './api.js';
 let categories = [];
 let transactions = [];
 let origins = [];
+let creditCards = [];
 let chart = null;
 let editingId = null;
 let editingCategoryId = null;
 let editingOriginId = null;
+let editingCreditCardId = null;
 
 let sortCol = 'date';
 let sortDir = 'desc';
@@ -33,17 +35,21 @@ export async function initDashboard(user) {
 
   await loadCategories();
   await loadOrigins();
+  await loadCreditCards();
   await loadTransactions();
   setupForm();
   setupTypeToggle();
   setupCategoryPanel();
   setupOriginPanel();
+  setupCreditCardPanel();
   document.getElementById('btn-add-expense').addEventListener('click', openAddForm);
   document.getElementById('btn-cancel').addEventListener('click', closeForm);
   document.getElementById('btn-categories').addEventListener('click', openCategoriesModal);
   document.getElementById('btn-close-categories').addEventListener('click', closeCategoriesModal);
   document.getElementById('btn-origins').addEventListener('click', openOriginsModal);
   document.getElementById('btn-close-origins').addEventListener('click', closeOriginsModal);
+  document.getElementById('btn-credit-cards').addEventListener('click', openCreditCardsModal);
+  document.getElementById('btn-close-credit-cards').addEventListener('click', closeCreditCardsModal);
   document.getElementById('btn-chart').addEventListener('click', openChartModal);
   document.getElementById('btn-close-chart').addEventListener('click', closeChartModal);
   document.getElementById('chart-modal').addEventListener('click', (e) => {
@@ -58,12 +64,16 @@ export async function initDashboard(user) {
   document.getElementById('origins-modal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeOriginsModal();
   });
+  document.getElementById('credit-cards-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeCreditCardsModal();
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeChartModal();
       closeForm();
       closeCategoriesModal();
       closeOriginsModal();
+      closeCreditCardsModal();
     }
   });
 
@@ -148,24 +158,55 @@ async function loadOrigins() {
   }
 }
 
+async function loadCreditCards() {
+  try {
+    creditCards = await api.creditCards.getAll();
+    refreshPaymentSelect();
+  } catch (err) {
+    console.error('Failed to load credit cards:', err);
+  }
+}
+
 function refreshOriginSelects() {
-  document.querySelectorAll('.origin-select').forEach((sel) => {
-    const current = sel.value;
-    sel.innerHTML = '';
+  updateOriginFilterOptions();
+  refreshPaymentSelect();
+}
+
+function refreshPaymentSelect() {
+  const sel = document.getElementById('exp-payment');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '';
+
+  if (origins.length > 0) {
+    const group = document.createElement('optgroup');
+    group.label = 'Medios de pago';
     origins.forEach((orig) => {
       const opt = document.createElement('option');
       opt.value = orig.name;
       opt.textContent = orig.name;
-      sel.appendChild(opt);
+      group.appendChild(opt);
     });
-    if (current) {
-      sel.value = current;
-    } else {
-      const debito = origins.find((o) => o.name === 'Débito');
-      if (debito) sel.value = debito.name;
-    }
-  });
-  updateOriginFilterOptions();
+    sel.appendChild(group);
+  }
+
+  if (creditCards.length > 0) {
+    const group = document.createElement('optgroup');
+    group.label = 'Tarjetas de crédito';
+    creditCards.forEach((cc) => {
+      const opt = document.createElement('option');
+      opt.value = `tc:${cc.id}`;
+      opt.textContent = cc.bank ? `${cc.name} — ${cc.bank}` : cc.name;
+      group.appendChild(opt);
+    });
+    sel.appendChild(group);
+  }
+
+  if (current) sel.value = current;
+  else {
+    const debito = origins.find((o) => o.name === 'Débito');
+    if (debito) sel.value = debito.name;
+  }
 }
 
 async function loadTransactions() {
@@ -188,7 +229,7 @@ function getFiltered() {
     if (t.currency !== currency) return false;
     if (colFilters.category && t.category !== colFilters.category) return false;
     if (colFilters.type && t.type !== colFilters.type) return false;
-    if (colFilters.origin && t.origin !== colFilters.origin) return false;
+    if (colFilters.origin && (t.origin !== colFilters.origin || t.credit_card_id)) return false;
     if (colFilters.description && !t.description.toLowerCase().includes(colFilters.description.toLowerCase())) return false;
     return true;
   });
@@ -369,15 +410,16 @@ function renderTableBody() {
   tbody.innerHTML = filtered.map((t) => {
     const isIncome = t.type === 'income';
     const color = categoryColor(t.category);
+    const isPending = t.status === 'pending';
     return `
       <tr data-id="${t.id}">
         <td class="tx-date">${formatDate(t.date)}</td>
         <td class="tx-desc">${escHtml(t.description)}</td>
         <td><span class="expense-category-badge" style="background:${color}22;color:${color}">${escHtml(t.category)}</span></td>
-        <td><span class="tx-origin-pill">${escHtml(t.origin || 'Débito')}</span></td>
+        <td><span class="tx-origin-pill">${escHtml(paymentLabel(t))}</span></td>
         <td><span class="tx-type-pill ${isIncome ? 'tx-type--income' : 'tx-type--expense'}">${isIncome ? 'Ingreso' : 'Egreso'}</span></td>
         <td class="tx-right">
-          <span class="tx-amount ${isIncome ? 'amount--income' : 'amount--expense'}">${isIncome ? '+' : '-'}${formatAmount(t.amount)}</span>
+          <span class="tx-amount ${isIncome ? 'amount--income' : 'amount--expense'}">${isIncome ? '+' : '-'}${formatAmount(t.amount)}</span>${isPending ? '<span class="tx-pending-badge">Pendiente</span>' : ''}
         </td>
         <td class="tx-actions-cell">
           <div class="tx-actions">
@@ -433,6 +475,7 @@ function renderCards() {
 
   list.innerHTML = filtered.map((t) => {
     const isIncome = t.type === 'income';
+    const isPending = t.status === 'pending';
     return `
     <div class="expense-item" data-id="${t.id}">
       <div class="expense-left">
@@ -440,11 +483,11 @@ function renderCards() {
         <span class="expense-category-badge" style="background:${categoryColor(t.category)}22;color:${categoryColor(t.category)}">${escHtml(t.category)}</span>
         <div>
           <p class="expense-description">${escHtml(t.description)}</p>
-          <p class="expense-date">${formatDate(t.date)} · ${escHtml(t.origin || 'Débito')}</p>
+          <p class="expense-date">${formatDate(t.date)} · ${escHtml(paymentLabel(t))}</p>
         </div>
       </div>
       <div class="expense-right">
-        <span class="expense-amount ${isIncome ? 'amount--income' : ''}">${isIncome ? '+' : '-'}${formatAmount(t.amount)}</span>
+        <span class="expense-amount ${isIncome ? 'amount--income' : ''}">${isIncome ? '+' : '-'}${formatAmount(t.amount)}${isPending ? '<span class="tx-pending-badge">Pendiente</span>' : ''}</span>
         <div class="expense-actions">
           <button class="btn-icon btn-clone" aria-label="Clonar" data-id="${t.id}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -484,10 +527,12 @@ function renderCards() {
 function updateSummary() {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthTx = transactions.filter((t) => t.date.startsWith(currentMonth) && t.currency === selectedCurrency());
+  const currency = selectedCurrency();
+  const monthTx = transactions.filter((t) => t.date.startsWith(currentMonth) && t.currency === currency);
 
-  const income = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expenses = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const settled = monthTx.filter((t) => t.status === 'settled');
+  const income = settled.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expenses = settled.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expenses;
 
   document.getElementById('total-income').textContent = formatAmount(income);
@@ -496,6 +541,36 @@ function updateSummary() {
   const balanceEl = document.getElementById('total-balance');
   balanceEl.textContent = (balance >= 0 ? '+' : '') + formatAmount(Math.abs(balance));
   balanceEl.className = balance >= 0 ? 'amount--income' : 'amount--expense';
+
+  renderTCDebtSummary();
+}
+
+function renderTCDebtSummary() {
+  const el = document.getElementById('tc-debt-summary');
+  if (!el) return;
+  const pending = transactions.filter((t) => t.status === 'pending' && t.credit_card_id);
+  if (pending.length === 0) { el.hidden = true; return; }
+
+  const byCard = {};
+  pending.forEach((t) => {
+    const key = t.credit_card_id;
+    if (!byCard[key]) byCard[key] = { ARS: 0, USD: 0 };
+    byCard[key][t.currency] = (byCard[key][t.currency] || 0) + t.amount;
+  });
+
+  el.hidden = false;
+  el.innerHTML = `
+    <div class="tc-debt-header">Deuda en tarjetas</div>
+    <div class="tc-debt-cards">
+      ${Object.entries(byCard).map(([cardId, amounts]) => {
+        const cc = creditCards.find((c) => c.id === Number(cardId));
+        const label = cc ? (cc.bank ? `${cc.name} — ${cc.bank}` : cc.name) : `TC #${cardId}`;
+        const parts = [];
+        if (amounts.ARS) parts.push(new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 }).format(amounts.ARS));
+        if (amounts.USD) parts.push(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amounts.USD));
+        return `<div class="tc-debt-item"><span class="tc-debt-name">${escHtml(label)}</span><span class="tc-debt-amount">${parts.join(' · ')}</span></div>`;
+      }).join('')}
+    </div>`;
 }
 
 // ─── Chart Modal ─────────────────────────────────
@@ -595,14 +670,18 @@ function setupForm() {
     const btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
 
+    const paymentValue = form.payment.value;
+    const isTC = paymentValue.startsWith('tc:');
     const body = {
       type: document.getElementById('tx-type').value,
       currency: selectedCurrency(),
       amount: form.amount.value,
       description: form.description.value,
       category: form.category.value,
-      origin: form.origin.value,
       date: form.date.value,
+      ...(isTC
+        ? { credit_card_id: Number(paymentValue.slice(3)) }
+        : { origin: paymentValue }),
     };
 
     try {
@@ -634,7 +713,7 @@ function openAddForm() {
   form.date.value = new Date().toISOString().slice(0, 10);
   setFormType('expense');
   const debito = origins.find((o) => o.name === 'Débito');
-  if (debito) form.origin.value = debito.name;
+  if (debito) form.payment.value = debito.name;
   document.getElementById('form-title').textContent = 'Nuevo movimiento';
   document.getElementById('error-expense').hidden = true;
   document.getElementById('expense-modal').hidden = false;
@@ -650,7 +729,11 @@ function openEditForm(id) {
   form.description.value = tx.description;
   form.amount.value = tx.amount;
   form.category.value = tx.category;
-  form.origin.value = tx.origin || 'Débito';
+  if (tx.credit_card_id) {
+    form.payment.value = `tc:${tx.credit_card_id}`;
+  } else {
+    form.payment.value = tx.origin || 'Débito';
+  }
   form.date.value = tx.date;
   document.getElementById('form-title').textContent = 'Editar movimiento';
   document.getElementById('error-expense').hidden = true;
@@ -680,7 +763,11 @@ function cloneTransaction(id) {
   form.description.value = tx.description;
   form.amount.value = tx.amount;
   form.category.value = tx.category;
-  form.origin.value = tx.origin || 'Débito';
+  if (tx.credit_card_id) {
+    form.payment.value = `tc:${tx.credit_card_id}`;
+  } else {
+    form.payment.value = tx.origin || 'Débito';
+  }
   form.date.value = new Date().toISOString().slice(0, 10);
   document.getElementById('form-title').textContent = 'Nuevo movimiento';
   document.getElementById('error-expense').hidden = true;
@@ -924,7 +1011,127 @@ async function deleteOrigin(id) {
   }
 }
 
+// ─── Credit card panel ────────────────────────────
+
+function openCreditCardsModal() {
+  document.getElementById('credit-cards-modal').hidden = false;
+  renderCreditCardList();
+}
+
+function closeCreditCardsModal() {
+  document.getElementById('credit-cards-modal').hidden = true;
+  editingCreditCardId = null;
+  const form = document.getElementById('form-credit-card');
+  form.reset();
+  form.querySelector('button[type="submit"]').textContent = 'Agregar';
+  document.getElementById('error-credit-card').hidden = true;
+}
+
+function renderCreditCardList() {
+  const list = document.getElementById('credit-cards-list');
+  if (creditCards.length === 0) {
+    list.innerHTML = '<p style="color:var(--color-text-muted);font-size:.875rem;">Sin tarjetas registradas.</p>';
+    return;
+  }
+  list.innerHTML = creditCards.map((cc) => `
+    <div class="category-row" data-id="${cc.id}">
+      <span class="category-row-name">${escHtml(cc.bank ? `${cc.name} — ${cc.bank}` : cc.name)}</span>
+      <div class="expense-actions">
+        <button class="btn-icon btn-edit-cc" aria-label="Editar" data-id="${cc.id}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="btn-icon btn-delete-cc" aria-label="Eliminar" data-id="${cc.id}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.btn-edit-cc').forEach((btn) => {
+    btn.addEventListener('click', () => openEditCreditCard(Number(btn.dataset.id)));
+  });
+  list.querySelectorAll('.btn-delete-cc').forEach((btn) => {
+    btn.addEventListener('click', () => deleteCreditCard(Number(btn.dataset.id)));
+  });
+}
+
+function setupCreditCardPanel() {
+  const form = document.getElementById('form-credit-card');
+  const errorEl = document.getElementById('error-credit-card');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    const body = { name: form.ccname.value.trim(), bank: form.ccbank.value.trim() };
+    try {
+      if (editingCreditCardId) {
+        const updated = await api.creditCards.update(editingCreditCardId, body);
+        creditCards = creditCards.map((c) => (c.id === editingCreditCardId ? updated : c));
+        editingCreditCardId = null;
+        btn.textContent = 'Agregar';
+      } else {
+        const created = await api.creditCards.create(body);
+        creditCards.push(created);
+        creditCards.sort((a, b) => a.name.localeCompare(b.name));
+      }
+      form.reset();
+      refreshPaymentSelect();
+      renderCreditCardList();
+      renderList();
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+function openEditCreditCard(id) {
+  const cc = creditCards.find((c) => c.id === id);
+  if (!cc) return;
+  editingCreditCardId = id;
+  const form = document.getElementById('form-credit-card');
+  form.ccname.value = cc.name;
+  form.ccbank.value = cc.bank || '';
+  form.querySelector('button[type="submit"]').textContent = 'Guardar cambios';
+  form.ccname.focus();
+}
+
+async function deleteCreditCard(id) {
+  const cc = creditCards.find((c) => c.id === id);
+  if (!cc || !confirm(`¿Eliminar la tarjeta "${cc.bank ? `${cc.name} — ${cc.bank}` : cc.name}"?`)) return;
+  const errorEl = document.getElementById('error-credit-card');
+  errorEl.hidden = true;
+  try {
+    await api.creditCards.delete(id);
+    creditCards = creditCards.filter((c) => c.id !== id);
+    refreshPaymentSelect();
+    renderCreditCardList();
+    renderList();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.hidden = false;
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────
+
+function paymentLabel(t) {
+  if (t.credit_card_id) {
+    const cc = creditCards.find((c) => c.id === t.credit_card_id);
+    return cc ? (cc.bank ? `${cc.name} — ${cc.bank}` : cc.name) : 'TC';
+  }
+  return t.origin || 'Débito';
+}
 
 function categoryColor(name) {
   const cat = categories.find((c) => c.name === name);

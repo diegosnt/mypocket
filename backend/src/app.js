@@ -29,6 +29,7 @@ app.use(async (_req, res, next) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/origins', require('./routes/origins'));
+app.use('/api/credit-cards', require('./routes/credit-cards'));
 app.use('/api/transactions', require('./routes/transactions'));
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));

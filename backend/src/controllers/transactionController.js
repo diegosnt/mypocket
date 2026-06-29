@@ -17,14 +17,18 @@ async function getAll(req, res) {
 }
 
 async function create(req, res) {
-  const { type, amount, description, category, date, currency, origin } = req.body;
-  const validationError = await validate({ type, amount, description, category, date, currency, origin });
+  const { type, amount, description, category, date, currency, origin, credit_card_id } = req.body;
+  const validationError = await validate({ type, amount, description, category, date, currency, origin, credit_card_id }, req.user.id);
   if (validationError) return res.status(400).json({ error: validationError });
+
+  const status = credit_card_id ? 'pending' : 'settled';
+  const actualOrigin = credit_card_id ? '' : origin;
+  const actualCreditCardId = credit_card_id ? Number(credit_card_id) : null;
 
   try {
     const result = await db.execute({
-      sql: 'INSERT INTO transactions (user_id, type, amount, description, category, date, currency, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      args: [req.user.id, type, parseFloat(amount), description.trim(), category, date, currency, origin],
+      sql: 'INSERT INTO transactions (user_id, type, amount, description, category, date, currency, origin, credit_card_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [req.user.id, type, parseFloat(amount), description.trim(), category, date, currency, actualOrigin, actualCreditCardId, status],
     });
     const row = await db.execute({
       sql: 'SELECT * FROM transactions WHERE id = ?',
@@ -39,9 +43,13 @@ async function create(req, res) {
 
 async function update(req, res) {
   const { id } = req.params;
-  const { type, amount, description, category, date, currency, origin } = req.body;
-  const validationError = await validate({ type, amount, description, category, date, currency, origin });
+  const { type, amount, description, category, date, currency, origin, credit_card_id } = req.body;
+  const validationError = await validate({ type, amount, description, category, date, currency, origin, credit_card_id }, req.user.id);
   if (validationError) return res.status(400).json({ error: validationError });
+
+  const status = credit_card_id ? 'pending' : 'settled';
+  const actualOrigin = credit_card_id ? '' : origin;
+  const actualCreditCardId = credit_card_id ? Number(credit_card_id) : null;
 
   try {
     const existing = await db.execute({
@@ -53,8 +61,8 @@ async function update(req, res) {
     }
 
     await db.execute({
-      sql: 'UPDATE transactions SET type = ?, amount = ?, description = ?, category = ?, date = ?, currency = ?, origin = ? WHERE id = ?',
-      args: [type, parseFloat(amount), description.trim(), category, date, currency, origin, id],
+      sql: 'UPDATE transactions SET type = ?, amount = ?, description = ?, category = ?, date = ?, currency = ?, origin = ?, credit_card_id = ?, status = ? WHERE id = ?',
+      args: [type, parseFloat(amount), description.trim(), category, date, currency, actualOrigin, actualCreditCardId, status, id],
     });
     const row = await db.execute({
       sql: 'SELECT * FROM transactions WHERE id = ?',
@@ -89,7 +97,7 @@ async function remove(req, res) {
   }
 }
 
-async function validate({ type, amount, description, category, date, currency, origin }) {
+async function validate({ type, amount, description, category, date, currency, origin, credit_card_id }, userId) {
   if (!type || !VALID_TYPES.includes(type)) {
     return 'El tipo debe ser egreso o ingreso';
   }
@@ -115,15 +123,31 @@ async function validate({ type, amount, description, category, date, currency, o
   if (cat.rows.length === 0) {
     return 'La categoría no es válida';
   }
-  if (!origin || origin.trim().length === 0) {
-    return 'El origen es obligatorio';
+  if (credit_card_id && origin) {
+    return 'No se puede indicar origen y tarjeta de crédito al mismo tiempo';
   }
-  const orig = await db.execute({
-    sql: 'SELECT id FROM origins WHERE name = ?',
-    args: [origin],
-  });
-  if (orig.rows.length === 0) {
-    return 'El origen no es válido';
+  if (!credit_card_id && !origin) {
+    return 'Debe indicar un origen o una tarjeta de crédito';
+  }
+  if (credit_card_id) {
+    const cc = await db.execute({
+      sql: 'SELECT id FROM credit_cards WHERE id = ? AND user_id = ?',
+      args: [Number(credit_card_id), userId],
+    });
+    if (cc.rows.length === 0) {
+      return 'La tarjeta de crédito no es válida';
+    }
+  } else {
+    if (!origin || origin.trim().length === 0) {
+      return 'El origen es obligatorio';
+    }
+    const orig = await db.execute({
+      sql: 'SELECT id FROM origins WHERE name = ?',
+      args: [origin],
+    });
+    if (orig.rows.length === 0) {
+      return 'El origen no es válido';
+    }
   }
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return 'La fecha debe tener formato YYYY-MM-DD';
@@ -136,7 +160,9 @@ function normalizeRow(row) {
     id: Number(row.id),
     type: row.type,
     currency: row.currency || 'ARS',
-    origin: row.origin || 'Débito',
+    origin: row.origin || null,
+    credit_card_id: row.credit_card_id ? Number(row.credit_card_id) : null,
+    status: row.status || 'settled',
     amount: Number(row.amount),
     description: row.description,
     category: row.category,

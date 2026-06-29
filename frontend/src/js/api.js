@@ -29,6 +29,12 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  creditCards: {
+    getAll: () => request('/api/credit-cards'),
+    create: (body) => request('/api/credit-cards', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id, body) => request(`/api/credit-cards/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id) => request(`/api/credit-cards/${id}`, { method: 'DELETE' }),
+  },
   origins: {
     getAll: () => request('/api/origins'),
     create: (body) => request('/api/origins', { method: 'POST', body: JSON.stringify(body) }),
