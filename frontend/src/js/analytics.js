@@ -7,10 +7,11 @@ let ccData = [];
 
 export function initAnalytics() {
   setDefaults();
+  setLoading();
   document.getElementById('analytics-apply').addEventListener('click', fetchAndRender);
   document.getElementById('analytics-currency').addEventListener('change', render);
   window.addEventListener('themechange', () => {
-    if (!document.getElementById('analytics-body').hidden) render();
+    if (document.getElementById('analytics-body').style.display !== 'none') render();
   });
   fetchAndRender();
 }
@@ -24,7 +25,24 @@ function setDefaults() {
   document.getElementById('analytics-currency').value = localStorage.getItem('currency') || 'ARS';
 }
 
+function setLoading() {
+  document.getElementById('analytics-kpis').innerHTML =
+    '<p style="grid-column:1/-1;color:var(--color-text-muted);font-size:.9rem;">Cargando...</p>';
+  ['wrap-category', 'wrap-period', 'wrap-balance', 'wrap-payment'].forEach((id) => {
+    emptyWrap(id, 'Cargando...');
+  });
+}
+
+function setError(msg) {
+  document.getElementById('analytics-kpis').innerHTML =
+    `<p style="grid-column:1/-1;color:var(--color-danger);font-size:.9rem;">Error: ${msg}</p>`;
+  ['wrap-category', 'wrap-period', 'wrap-balance', 'wrap-payment'].forEach((id) => {
+    emptyWrap(id, 'Error al cargar datos');
+  });
+}
+
 async function fetchAndRender() {
+  setLoading();
   try {
     [txData, catData, ccData] = await Promise.all([
       api.transactions.getAll(),
@@ -33,7 +51,8 @@ async function fetchAndRender() {
     ]);
     render();
   } catch (err) {
-    console.error('[analytics] fetch error:', err);
+    console.error('[analytics]', err);
+    setError(err.message);
   }
 }
 

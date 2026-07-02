@@ -180,7 +180,7 @@
     </main>
 
     <!-- Analytics View -->
-    <main class="analytics-body" id="analytics-body" hidden>
+    <main class="analytics-body" id="analytics-body" style="display:none">
       <div class="analytics-filters">
         <div class="form-group" style="margin-bottom:0;min-width:140px;">
           <label for="analytics-from">Desde</label>
@@ -504,15 +504,15 @@
   let analyticsLoaded = false;
 
   document.getElementById('nav-movimientos').addEventListener('click', () => {
-    document.getElementById('dashboard-body').hidden = false;
-    document.getElementById('analytics-body').hidden = true;
+    document.getElementById('dashboard-body').style.display = '';
+    document.getElementById('analytics-body').style.display = 'none';
     document.getElementById('nav-movimientos').classList.add('active');
     document.getElementById('nav-analytics').classList.remove('active');
   });
 
   document.getElementById('nav-analytics').addEventListener('click', () => {
-    document.getElementById('dashboard-body').hidden = true;
-    document.getElementById('analytics-body').hidden = false;
+    document.getElementById('dashboard-body').style.display = 'none';
+    document.getElementById('analytics-body').style.display = 'grid';
     document.getElementById('nav-movimientos').classList.remove('active');
     document.getElementById('nav-analytics').classList.add('active');
     if (!analyticsLoaded) {
