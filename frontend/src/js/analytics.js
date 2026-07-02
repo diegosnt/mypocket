@@ -123,6 +123,7 @@ function render() {
   renderPeriodBar(tx);
   renderBalanceLine(tx);
   renderPaymentBar(tx);
+  renderHeatmap(tx);
 }
 
 // ─── KPIs ─────────────────────────────────────────
@@ -363,4 +364,107 @@ function renderPaymentBar(tx) {
       },
     },
   });
+}
+
+// ─── Heatmap: egresos diarios ──────────────────────
+
+function heatColor(t) {
+  const r = Math.round(254 + (185 - 254) * t);
+  const g = Math.round(226 + (28  - 226) * t);
+  const b = Math.round(226 + (28  - 226) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+function renderHeatmap(tx) {
+  const wrap = document.getElementById('wrap-heatmap');
+  wrap.innerHTML = '';
+  wrap.style.height = 'auto';
+
+  const expenses = tx.filter((t) => t.type === 'expense' && t.status === 'settled');
+  if (!expenses.length) {
+    wrap.innerHTML = `<p class="chart-empty" style="padding:2rem 0;">Sin egresos en el período</p>`;
+    return;
+  }
+
+  const byDay = {};
+  expenses.forEach((t) => {
+    const d = t.date.slice(0, 10);
+    byDay[d] = (byDay[d] || 0) + t.amount;
+  });
+  const maxVal = Math.max(...Object.values(byDay), 1);
+
+  const from = document.getElementById('analytics-from').value;
+  const to   = document.getElementById('analytics-to').value;
+  if (!from || !to) return;
+
+  const start = new Date(from + 'T12:00:00');
+  const end   = new Date(to   + 'T12:00:00');
+
+  // Retroceder al lunes de la semana de inicio
+  const startDow = start.getDay();
+  const origin = new Date(start);
+  origin.setDate(start.getDate() - (startDow === 0 ? 6 : startDow - 1));
+
+  // Construir columnas (una por semana)
+  const cols = [];
+  const cur = new Date(origin);
+  while (cur <= end) {
+    const col = [];
+    for (let d = 0; d < 7; d++) {
+      const ds = cur.toISOString().slice(0, 10);
+      const inRange = cur >= start && cur <= end;
+      col.push({ date: ds, value: inRange ? (byDay[ds] ?? 0) : null });
+      cur.setDate(cur.getDate() + 1);
+    }
+    cols.push(col);
+  }
+
+  // Etiquetas de mes (aparece cuando cambia el mes)
+  const monthLabels = cols.map((col, i) => {
+    const d = new Date(col[0].date + 'T12:00:00');
+    if (i === 0) return d.toLocaleDateString('es-AR', { month: 'short' });
+    const prev = new Date(cols[i - 1][0].date + 'T12:00:00');
+    return d.getMonth() !== prev.getMonth()
+      ? d.toLocaleDateString('es-AR', { month: 'short' })
+      : '';
+  });
+
+  const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  wrap.innerHTML = `
+    <div class="heatmap-scroll">
+      <div class="heatmap-months">
+        <div style="width:2.5rem;flex-shrink:0;"></div>
+        ${cols.map((_, i) => `<div class="heatmap-month-lbl">${monthLabels[i]}</div>`).join('')}
+      </div>
+      <div class="heatmap-body">
+        <div class="heatmap-days">
+          ${dayNames.map((n, i) => `<div class="heatmap-day-lbl">${i % 2 === 0 ? n : ''}</div>`).join('')}
+        </div>
+        <div class="heatmap-grid">
+          ${cols.map((col) => `
+            <div class="heatmap-col">
+              ${col.map((day) => {
+                if (day.value === null) {
+                  return `<div class="heatmap-cell" style="background:transparent;cursor:default;"></div>`;
+                }
+                const intensity = day.value > 0 ? Math.pow(day.value / maxVal, 0.4) : 0;
+                const bg = day.value > 0 ? heatColor(intensity) : 'var(--color-border)';
+                const tipDate = day.date.slice(8) + '/' + day.date.slice(5, 7);
+                const tipVal  = day.value > 0 ? fmt(day.value) : 'Sin egresos';
+                return `<div class="heatmap-cell" style="background:${bg}" title="${tipDate}: ${tipVal}"></div>`;
+              }).join('')}
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="heatmap-legend">
+        <span>Menos</span>
+        <div class="heatmap-legend-grid">
+          ${[0, 0.2, 0.4, 0.65, 1].map((v) =>
+            `<div class="heatmap-cell" style="background:${v === 0 ? 'var(--color-border)' : heatColor(v)};cursor:default;"></div>`
+          ).join('')}
+        </div>
+        <span>Más</span>
+      </div>
+    </div>`;
 }
