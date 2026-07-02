@@ -21,8 +21,9 @@ export async function initAnalytics() {
 
 function setDefaults() {
   const now = new Date();
-  const first = new Date(now.getFullYear(), now.getMonth(), 1);
-  document.getElementById('analytics-from').value = first.toISOString().slice(0, 10);
+  const oneMonthAgo = new Date(now);
+  oneMonthAgo.setMonth(now.getMonth() - 1);
+  document.getElementById('analytics-from').value = oneMonthAgo.toISOString().slice(0, 10);
   document.getElementById('analytics-to').value = now.toISOString().slice(0, 10);
   document.getElementById('analytics-currency').value = localStorage.getItem('currency') || 'ARS';
 }
