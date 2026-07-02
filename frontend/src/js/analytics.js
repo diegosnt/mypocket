@@ -4,19 +4,15 @@ let charts = {};
 let txData = [];
 let catData = [];
 let ccData = [];
-let listenersReady = false;
 
-export async function initAnalytics() {
-  if (!listenersReady) {
-    setDefaults();
-    document.getElementById('analytics-apply').addEventListener('click', fetchAndRender);
-    document.getElementById('analytics-currency').addEventListener('change', render);
-    window.addEventListener('themechange', () => {
-      if (!document.getElementById('analytics-body').hidden) render();
-    });
-    listenersReady = true;
-    await fetchAndRender();
-  }
+export function initAnalytics() {
+  setDefaults();
+  document.getElementById('analytics-apply').addEventListener('click', fetchAndRender);
+  document.getElementById('analytics-currency').addEventListener('change', render);
+  window.addEventListener('themechange', () => {
+    if (!document.getElementById('analytics-body').hidden) render();
+  });
+  fetchAndRender();
 }
 
 function setDefaults() {

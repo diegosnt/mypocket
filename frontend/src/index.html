@@ -478,6 +478,7 @@
   import { initAuth, showAuth, showDashboard } from './js/auth.js';
   import { initDashboard } from './js/dashboard.js';
   import { initTheme } from './js/theme.js';
+  import { initAnalytics } from './js/analytics.js';
 
   initTheme();
 
@@ -498,6 +499,27 @@
   const now = new Date();
   document.getElementById('filter-month').value =
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  // Nav: Movimientos ↔ Análisis
+  let analyticsLoaded = false;
+
+  document.getElementById('nav-movimientos').addEventListener('click', () => {
+    document.getElementById('dashboard-body').hidden = false;
+    document.getElementById('analytics-body').hidden = true;
+    document.getElementById('nav-movimientos').classList.add('active');
+    document.getElementById('nav-analytics').classList.remove('active');
+  });
+
+  document.getElementById('nav-analytics').addEventListener('click', () => {
+    document.getElementById('dashboard-body').hidden = true;
+    document.getElementById('analytics-body').hidden = false;
+    document.getElementById('nav-movimientos').classList.remove('active');
+    document.getElementById('nav-analytics').classList.add('active');
+    if (!analyticsLoaded) {
+      analyticsLoaded = true;
+      initAnalytics();
+    }
+  });
 </script>
 </body>
 </html>
