@@ -149,6 +149,28 @@ export async function initDashboard(user) {
       renderList();
     }, 250);
   });
+
+  // ─── Analytics nav ─────────────────────────────
+  let analyticsInit = null;
+
+  document.getElementById('nav-movimientos').addEventListener('click', () => {
+    document.getElementById('dashboard-body').hidden = false;
+    document.getElementById('analytics-body').hidden = true;
+    document.getElementById('nav-movimientos').classList.add('active');
+    document.getElementById('nav-analytics').classList.remove('active');
+  });
+
+  document.getElementById('nav-analytics').addEventListener('click', async () => {
+    document.getElementById('dashboard-body').hidden = true;
+    document.getElementById('analytics-body').hidden = false;
+    document.getElementById('nav-movimientos').classList.remove('active');
+    document.getElementById('nav-analytics').classList.add('active');
+    if (!analyticsInit) {
+      const mod = await import('./analytics.js');
+      analyticsInit = mod.initAnalytics;
+      analyticsInit();
+    }
+  });
 }
 
 function logout() {

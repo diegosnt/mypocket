@@ -205,9 +205,43 @@ input:focus, select:focus {
 /* ─── Dashboard Layout ───────────────────────────── */
 
 .dashboard {
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+}
+
+/* ─── Topbar Nav ─────────────────────────────────── */
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: .2rem;
+}
+
+.topbar-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .4rem .85rem;
+  border: none;
+  border-radius: 6px;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: none;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+
+.topbar-nav-btn:hover { color: var(--color-text); background: var(--color-border); }
+.topbar-nav-btn.active {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow);
 }
 
 .topbar {
@@ -253,6 +287,76 @@ input:focus, select:focus {
   grid-template-columns: 1fr;
   gap: 1.25rem;
   align-content: start;
+  flex: 1;
+}
+
+/* ─── Analytics Page ─────────────────────────────── */
+
+.analytics-body {
+  padding: 1.25rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+  flex: 1;
+}
+
+.analytics-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.analytics-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.kpi-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+.kpi-card p { font-size: .8rem; color: var(--color-text-muted); margin-bottom: .25rem; }
+.kpi-card strong { font-size: 1.5rem; font-weight: 700; }
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.analytics-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+.analytics-card--full { grid-column: 1 / -1; }
+
+.analytics-card-title {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 1rem;
+}
+
+.analytics-chart-wrap {
+  position: relative;
+  height: 280px;
 }
 
 /* ─── Summary Cards ──────────────────────────────── */
@@ -684,6 +788,12 @@ input[type="color"] {
   .expense-description { max-width: 140px; }
 
   .topbar-right span { display: none; }
+
+  .analytics-grid { grid-template-columns: 1fr; }
+  .analytics-card--full { grid-column: 1; }
+  .analytics-filters { flex-direction: column; align-items: stretch; }
+  .topbar-nav-btn { padding: .4rem .55rem; font-size: .75rem; }
+  .topbar-nav-btn svg { display: none; }
 }
 
 /* TC debt summary */

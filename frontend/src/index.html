@@ -63,6 +63,23 @@
         </svg>
         MyPocket
       </div>
+      <nav class="topbar-nav" aria-label="Vistas">
+        <button class="topbar-nav-btn active" id="nav-movimientos">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          Movimientos
+        </button>
+        <button class="topbar-nav-btn" id="nav-analytics">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+          </svg>
+          Análisis
+        </button>
+      </nav>
       <div class="topbar-right">
         <span id="user-name"></span>
         <button class="btn-theme-toggle btn-icon" aria-label="Cambiar tema"></button>
@@ -78,16 +95,16 @@
     </header>
 
     <!-- Contenido principal -->
-    <main class="dashboard-body">
+    <main class="dashboard-body" id="dashboard-body">
 
       <!-- Tarjetas de resumen -->
       <div class="summary-cards">
         <div class="summary-card">
-          <p>Ingresos del mes</p>
+          <p>Ingresos</p>
           <strong id="total-income" class="amount--income">$0.00</strong>
         </div>
         <div class="summary-card">
-          <p>Egresos del mes</p>
+          <p>Egresos</p>
           <strong id="total-expenses" class="amount--expense">$0.00</strong>
         </div>
         <div class="summary-card">
@@ -161,6 +178,55 @@
       <div id="pagination"></div>
 
     </main>
+
+    <!-- Analytics View -->
+    <main class="analytics-body" id="analytics-body" hidden>
+      <div class="analytics-filters">
+        <div class="form-group" style="margin-bottom:0;min-width:140px;">
+          <label for="analytics-from">Desde</label>
+          <input type="date" id="analytics-from" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;min-width:140px;">
+          <label for="analytics-to">Hasta</label>
+          <input type="date" id="analytics-to" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;min-width:110px;">
+          <label for="analytics-currency">Moneda</label>
+          <select id="analytics-currency">
+            <option value="ARS">ARS $</option>
+            <option value="USD">USD $</option>
+          </select>
+        </div>
+        <button id="analytics-apply" class="btn btn-primary" style="width:auto;align-self:flex-end;padding:.65rem 1.5rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          Aplicar
+        </button>
+      </div>
+
+      <div class="analytics-kpis" id="analytics-kpis"></div>
+
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <h3 class="analytics-card-title">Egresos por categoría</h3>
+          <div class="analytics-chart-wrap" id="wrap-category"></div>
+        </div>
+        <div class="analytics-card">
+          <h3 class="analytics-card-title">Ingresos vs Egresos por período</h3>
+          <div class="analytics-chart-wrap" id="wrap-period"></div>
+        </div>
+        <div class="analytics-card analytics-card--full">
+          <h3 class="analytics-card-title">Balance acumulado</h3>
+          <div class="analytics-chart-wrap" id="wrap-balance"></div>
+        </div>
+        <div class="analytics-card analytics-card--full">
+          <h3 class="analytics-card-title">Egresos por medio de pago</h3>
+          <div class="analytics-chart-wrap" id="wrap-payment"></div>
+        </div>
+      </div>
+    </main>
+
   </div>
 </section>
 
