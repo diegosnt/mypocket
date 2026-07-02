@@ -366,7 +366,7 @@ function renderPaymentBar(tx) {
   });
 }
 
-// ─── Heatmap: egresos diarios ──────────────────────
+// ─── Treemap: egresos por categoría ───────────────
 
 function heatColor(t) {
   const r = Math.round(254 + (185 - 254) * t);
@@ -375,96 +375,88 @@ function heatColor(t) {
   return `rgb(${r},${g},${b})`;
 }
 
+function treemapLayout(items, x, y, w, h) {
+  if (!items.length) return [];
+  if (items.length === 1) return [{ ...items[0], x, y, w, h }];
+  const total = items.reduce((s, i) => s + i.value, 0);
+  let half = 0;
+  let split = 0;
+  for (let i = 0; i < items.length; i++) {
+    if (half >= total / 2) break;
+    half += items[i].value;
+    split = i + 1;
+  }
+  const ratio = half / total;
+  const a = items.slice(0, split);
+  const b = items.slice(split);
+  if (w >= h) {
+    const w1 = w * ratio;
+    return [...treemapLayout(a, x, y, w1, h), ...treemapLayout(b, x + w1, y, w - w1, h)];
+  }
+  const h1 = h * ratio;
+  return [...treemapLayout(a, x, y, w, h1), ...treemapLayout(b, x, y + h1, w, h - h1)];
+}
+
 function renderHeatmap(tx) {
   const wrap = document.getElementById('wrap-heatmap');
   wrap.innerHTML = '';
-  wrap.style.height = 'auto';
 
   const expenses = tx.filter((t) => t.type === 'expense' && t.status === 'settled');
   if (!expenses.length) {
+    wrap.style.height = 'auto';
+    wrap.style.position = '';
     wrap.innerHTML = `<p class="chart-empty" style="padding:2rem 0;">Sin egresos en el período</p>`;
     return;
   }
 
-  const byDay = {};
+  const byCat = {};
   expenses.forEach((t) => {
-    const d = t.date.slice(0, 10);
-    byDay[d] = (byDay[d] || 0) + t.amount;
+    const name = catData.find((c) => c.id === t.category_id)?.name || 'Sin categoría';
+    byCat[name] = (byCat[name] || 0) + t.amount;
   });
-  const maxVal = Math.max(...Object.values(byDay), 1);
 
-  const from = document.getElementById('analytics-from').value;
-  const to   = document.getElementById('analytics-to').value;
-  if (!from || !to) return;
+  const items = Object.entries(byCat)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
 
-  const start = new Date(from + 'T12:00:00');
-  const end   = new Date(to   + 'T12:00:00');
+  const maxVal = items[0].value;
+  const W = wrap.offsetWidth || wrap.parentElement?.offsetWidth || 600;
+  const H = 280;
 
-  // Retroceder al lunes de la semana de inicio
-  const startDow = start.getDay();
-  const origin = new Date(start);
-  origin.setDate(start.getDate() - (startDow === 0 ? 6 : startDow - 1));
+  wrap.style.position = 'relative';
+  wrap.style.height = H + 'px';
+  wrap.style.overflow = 'hidden';
 
-  // Construir columnas (una por semana)
-  const cols = [];
-  const cur = new Date(origin);
-  while (cur <= end) {
-    const col = [];
-    for (let d = 0; d < 7; d++) {
-      const ds = cur.toISOString().slice(0, 10);
-      const inRange = cur >= start && cur <= end;
-      col.push({ date: ds, value: inRange ? (byDay[ds] ?? 0) : null });
-      cur.setDate(cur.getDate() + 1);
+  treemapLayout(items, 0, 0, W, H).forEach(({ name, value, x, y, w, h }) => {
+    const intensity = Math.pow(value / maxVal, 0.5);
+    const div = document.createElement('div');
+    div.title = `${name}: ${fmt(value)}`;
+    div.style.cssText = [
+      'position:absolute',
+      `left:${x + 1}px`,
+      `top:${y + 1}px`,
+      `width:${Math.max(w - 2, 0)}px`,
+      `height:${Math.max(h - 2, 0)}px`,
+      `background:${heatColor(intensity)}`,
+      'border-radius:3px',
+      'overflow:hidden',
+      'box-sizing:border-box',
+      'padding:4px 6px',
+      'cursor:default',
+    ].join(';');
+
+    if (w > 55 && h > 28) {
+      const lbl = document.createElement('div');
+      lbl.textContent = name;
+      lbl.style.cssText = `font-size:${h > 55 ? '.75rem' : '.65rem'};font-weight:600;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.3`;
+      div.appendChild(lbl);
+      if (h > 48) {
+        const amt = document.createElement('div');
+        amt.textContent = fmt(value);
+        amt.style.cssText = `font-size:.65rem;color:rgba(255,255,255,.9);text-shadow:0 1px 2px rgba(0,0,0,.4);overflow:hidden;white-space:nowrap;text-overflow:ellipsis`;
+        div.appendChild(amt);
+      }
     }
-    cols.push(col);
-  }
-
-  // Etiquetas de mes (aparece cuando cambia el mes)
-  const monthLabels = cols.map((col, i) => {
-    const d = new Date(col[0].date + 'T12:00:00');
-    if (i === 0) return d.toLocaleDateString('es-AR', { month: 'short' });
-    const prev = new Date(cols[i - 1][0].date + 'T12:00:00');
-    return d.getMonth() !== prev.getMonth()
-      ? d.toLocaleDateString('es-AR', { month: 'short' })
-      : '';
+    wrap.appendChild(div);
   });
-
-  const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-  wrap.innerHTML = `
-    <div class="heatmap-scroll">
-      <div class="heatmap-months">
-        <div style="width:2.5rem;flex-shrink:0;"></div>
-        ${cols.map((_, i) => `<div class="heatmap-month-lbl">${monthLabels[i]}</div>`).join('')}
-      </div>
-      <div class="heatmap-body">
-        <div class="heatmap-days">
-          ${dayNames.map((n, i) => `<div class="heatmap-day-lbl">${i % 2 === 0 ? n : ''}</div>`).join('')}
-        </div>
-        <div class="heatmap-grid">
-          ${cols.map((col) => `
-            <div class="heatmap-col">
-              ${col.map((day) => {
-                if (day.value === null) {
-                  return `<div class="heatmap-cell" style="background:transparent;cursor:default;"></div>`;
-                }
-                const intensity = day.value > 0 ? Math.pow(day.value / maxVal, 0.4) : 0;
-                const bg = day.value > 0 ? heatColor(intensity) : 'var(--color-border)';
-                const tipDate = day.date.slice(8) + '/' + day.date.slice(5, 7);
-                const tipVal  = day.value > 0 ? fmt(day.value) : 'Sin egresos';
-                return `<div class="heatmap-cell" style="background:${bg}" title="${tipDate}: ${tipVal}"></div>`;
-              }).join('')}
-            </div>`).join('')}
-        </div>
-      </div>
-      <div class="heatmap-legend">
-        <span>Menos</span>
-        <div class="heatmap-legend-grid">
-          ${[0, 0.2, 0.4, 0.65, 1].map((v) =>
-            `<div class="heatmap-cell" style="background:${v === 0 ? 'var(--color-border)' : heatColor(v)};cursor:default;"></div>`
-          ).join('')}
-        </div>
-        <span>Más</span>
-      </div>
-    </div>`;
 }

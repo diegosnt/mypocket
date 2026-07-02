@@ -359,31 +359,6 @@ input:focus, select:focus {
   height: 280px;
 }
 
-/* ─── Heatmap ─────────────────────────────────── */
-.heatmap-scroll { overflow-x: auto; padding-bottom: .25rem; }
-.heatmap-months { display: flex; margin-left: 2.5rem; margin-bottom: .3rem; }
-.heatmap-month-lbl {
-  width: 18px; margin-right: 2px; font-size: .65rem;
-  color: var(--color-text-muted); flex-shrink: 0; white-space: nowrap;
-}
-.heatmap-body { display: flex; gap: 6px; align-items: flex-start; }
-.heatmap-days { display: flex; flex-direction: column; gap: 2px; width: 2.5rem; flex-shrink: 0; }
-.heatmap-day-lbl {
-  height: 16px; font-size: .65rem; color: var(--color-text-muted);
-  line-height: 16px; text-align: right; padding-right: 4px;
-}
-.heatmap-grid { display: flex; gap: 2px; }
-.heatmap-col { display: flex; flex-direction: column; gap: 2px; }
-.heatmap-cell {
-  width: 16px; height: 16px; border-radius: 3px;
-  flex-shrink: 0; cursor: default; transition: opacity .1s;
-}
-.heatmap-cell:hover { opacity: .75; }
-.heatmap-legend {
-  display: flex; align-items: center; gap: .4rem; margin-top: .75rem;
-  font-size: .72rem; color: var(--color-text-muted); justify-content: flex-end;
-}
-.heatmap-legend-grid { display: flex; gap: 2px; }
 
 /* ─── Summary Cards ──────────────────────────────── */
 
