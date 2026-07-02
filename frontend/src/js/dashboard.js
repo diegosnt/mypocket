@@ -589,12 +589,8 @@ function renderCards() {
 // ─── Summary ──────────────────────────────────────
 
 function updateSummary() {
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const currency = selectedCurrency();
-  const monthTx = transactions.filter((t) => t.date.startsWith(currentMonth) && t.currency === currency);
-
-  const settled = monthTx.filter((t) => t.status === 'settled');
+  const settled = transactions.filter((t) => t.currency === currency && t.status === 'settled');
   const income = settled.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expenses = settled.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expenses;
